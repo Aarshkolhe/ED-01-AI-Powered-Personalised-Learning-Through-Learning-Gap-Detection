@@ -26,7 +26,7 @@ class AIService:
         if self.client:
             try:
                 prompt = f"""
-                You are a supportive, encouraging math tutor for LearnLens AI.
+                You are a supportive, encouraging math tutor for Thinkflow.
                 Problem: {problem}
                 Correct Answer: {correct_answer}
                 Student Answer: {student_answer}
@@ -62,7 +62,21 @@ class AIService:
         Generates a verified question targeting the specific misconception.
         Validates structure and mathematical consistency.
         Falls back to curated database questions if validation fails.
+        Guarantees concept and misconception alignment without cross-concept bleed.
         """
+        # Align misconception to concept to prevent cross-concept mismatches
+        concept_misconception_rules = {
+            "fraction_addition_like": ["add_denominators"],
+            "fraction_addition_unlike": ["add_denominators", "cross_multiply_in_addition"],
+            "algebra_expressions": ["unlike_terms_merging"],
+            "linear_equations_1step": ["sign_flip_omission"],
+            "linear_equations_2step": ["sign_flip_omission"],
+        }
+        if concept_id in concept_misconception_rules:
+            allowed = concept_misconception_rules[concept_id]
+            if misconception_id not in allowed:
+                misconception_id = allowed[0]
+
         # Deterministic high-quality questions for math misconceptions
         fallback_map: Dict[str, Question] = {
             "add_denominators": Question(
@@ -79,6 +93,22 @@ class AIService:
                 ],
                 correct_answer="5/7",
                 worked_solution=["1. Denominators are identical (7).", "2. Add numerators: 2 + 3 = 5.", "3. Result: 5/7."],
+                difficulty=difficulty
+            ),
+            "cross_multiply_in_addition": Question(
+                id=f"gen_{concept_id}_{misconception_id}_v1",
+                concept_id=concept_id,
+                prompt="Targeted Diagnostic: Calculate 1/3 + 1/4",
+                prompt_hi="लक्षित प्रश्न: 1/3 + 1/4 का मान ज्ञात करें",
+                question_type="multiple_choice",
+                options=[
+                    QuestionOption(id="o1", text="7/12", text_hi="7/12", misconception_id=None),
+                    QuestionOption(id="o2", text="1/12", text_hi="1/12", misconception_id="cross_multiply_in_addition", misconception_explanation="Cross-multiplication is not for addition! Find common denominator 12: 4/12 + 3/12 = 7/12."),
+                    QuestionOption(id="o3", text="2/7", text_hi="2/7", misconception_id="add_denominators", misconception_explanation="Added numerators and denominators straight across."),
+                    QuestionOption(id="o4", text="4/12", text_hi="4/12", misconception_id=None)
+                ],
+                correct_answer="7/12",
+                worked_solution=["1. LCD of 3 and 4 is 12.", "2. Convert 1/3 to 4/12 and 1/4 to 3/12.", "3. 4/12 + 3/12 = 7/12."],
                 difficulty=difficulty
             ),
             "sign_flip_omission": Question(
@@ -119,7 +149,7 @@ class AIService:
         if self.client:
             try:
                 system_instruction = (
-                    "You are a math assessment generator for LearnLens AI. "
+                    "You are a math assessment generator for Thinkflow. "
                     "Output ONLY valid JSON matching this structure: "
                     "{\"id\": str, \"prompt\": str, \"correct_answer\": str, \"worked_solution\": [str], \"options\": [{\"id\": str, \"text\": str, \"misconception_id\": Optional[str], \"misconception_explanation\": Optional[str]}]}"
                 )

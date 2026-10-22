@@ -1,5 +1,5 @@
 """
-Central In-Memory / Local Repository for LearnLens AI.
+Central In-Memory / Local Repository for Thinkflow.
 Stores live students, attempts, mastery states, diagnostic history,
 revision schedules, content reviews, and content reports.
 """

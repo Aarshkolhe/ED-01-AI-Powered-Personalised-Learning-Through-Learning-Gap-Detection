@@ -1,123 +1,175 @@
-# LearnLens AI — Precision AI Learning Platform
+# LearnLens AI — Precision AI-Powered Personalised Learning Platform
 
-> **Comprehensive Integration**: AI-Powered Personalised Learning Through Conceptual Learning Gap Detection, Bayesian Mastery Recovery, Metacognitive Calibration & Teacher Quality Gates.
+> **Comprehensive Integration**: AI-Powered Personalised Learning Through Conceptual Learning Gap Detection, Bayesian Knowledge Tracing (BKT), Metacognitive Calibration, Knowledge Graph Dependency Mapping, and Teacher Quality Gates.
 
-LearnLens AI diagnoses *why* a student has made an error, isolates the conceptual misunderstanding using Bayesian Knowledge Tracing (BKT) and step-by-step mathematical reasoning, and automatically charts a prerequisite remediation path to close the gap.
-
----
-
-## 🌟 Architecture & Key Highlights
-
-### 1. Student Learning Portal
-- **Diagnostic Quiz:** Multiple-choice items with misconception distractors, free-text reasoning input, and response-time pacing signals.
-- **Confidence-Based Learning Insights (Feature A):** Students optionally specify confidence (Low, Medium, High). Detects overconfidence traps, underconfidence, conscious uncertainty, and mastery alignment. **Strictly isolated from BKT calculations** to preserve mathematical integrity.
-- **BKT Engine:** Real-time Bayesian updates ($P(L_0), P(T), P(G), P(S)$) updating mastery probabilities per student and concept after every response.
-- **Explainable Recommendations (Feature C):** Platform provides transparent, structured reason codes (`prerequisite_mastery_low`, `recent_error_pattern`, `mastery_uncertain`, `ready_for_harder_question`, `spaced_review_due`) alongside student-friendly explanations.
-- **Spaced Revision & Intelligent Practice Scheduling (Feature B):** Expanding review intervals (1, 2, 4, 7, 14, 30 days; 1-day reset on error). Prioritizes concepts due for review with transparent rationales.
-- **Student Content Reporting (Feature F):** Integrated "Report an issue" modal allowing students to flag incorrect answer keys, ambiguous wording, or formatting slips with student privacy preservation (masked IDs).
-- **Step-by-Step Mistake Detector:** Pinpoints the exact index of faulty equation transformations and provides targeted algebraic corrections.
-- **Targeted Misconception Generator:** Synthesizes verified diagnostic items with schema-validated distractors.
-- **Recovery Learning Path:** Topologically orders prerequisites so foundational gaps are addressed before advancing.
-- **Learning Recovery Score (LRS):** Compares pre-remediation baselines with fresh post-reassessment performance with transparent progress delta reporting.
-
-### 2. Knowledge-Graph Explorer
-- Interactive curriculum dependency graph built with **React Flow**.
-- Displays real-time student mastery percentages, critical learning-gap highlights ($<60\%$), and dynamic animated prerequisite edges.
-
-### 3. Teacher Diagnostic & Quality Gate Dashboard
-- **Classroom Overview:** Live cohort metrics, total enrolled learners, and evidence-based at-risk indicators.
-- **Concept Mastery Heatmap:** Recharts visualization of class-wide proficiency across mathematics concepts.
-- **Shared Misconception Analytics:** Tracks frequency of recurring traps with affected student rosters.
-- **Teacher Content Review Queue (Feature D):** Strict quality-gate workflow with content states (`draft`, `pending_review`, `approved`, `rejected`, `disabled`). Authorised teachers can inspect, approve, reject with reason, or quarantine questions. Unapproved questions are quarantined from students.
-- **Reported Issues Center (Feature F):** Teachers review student feedback and can quarantine questions, dismiss issues, or mark resolved.
-
-### 4. Automated Learning-Engine Evaluation Suite (Feature E)
-- Deterministic benchmark suite validating step mistake detection, question schema validity, BKT monotonicity, confidence non-interference, and recommendation traceability.
-- Outputs per-category Precision, Recall, F1, sample sizes ($n$), and regression thresholds without requiring external LLM API calls.
+LearnLens AI diagnoses *why* a student has made an error, isolates the conceptual misunderstanding using Bayesian Knowledge Tracing (BKT) and step-by-step mathematical reasoning, and automatically charts an explainable prerequisite remediation path to close the gap.
 
 ---
 
-## 🛠️ Technology Stack
+## 🌟 Architecture & Core Features (F1–F7 & Reliability Additions)
 
-- **Backend:** Python 3.13+, FastAPI, Pydantic v2, Pytest.
-- **Frontend:** Next.js (App Router, Turbopack), React 19, TypeScript, Tailwind CSS, React Flow (`@xyflow/react`), Recharts, Lucide Icons.
-- **Storage:** Local resilient repository with PostgreSQL/Supabase schema & Row Level Security (RLS) migrations.
-- **AI Engine:** Google Gemini 2.5 Flash API with deterministic fallback safety engine for credential-free offline execution.
+### 1. Feature 1 (F1): AI-Powered Learning-Gap & Misconception Detection
+- **Controlled Error Taxonomy:** Standardized classification (`prerequisite_gap`, `concept_misunderstanding`, `formula_confusion`, `arithmetic_or_sign_error`, `possible_typo`, and `insufficient_evidence`).
+- **Diagnostic Follow-Up Clarification (Spec §18.3, §19):** Ambiguous responses trigger targeted follow-up questions to differentiate competing misconceptions, with strict single-depth loop prevention.
+- **Evidence-Based:** An incorrect answer alone never diagnoses a definitive misconception; returns `insufficient_evidence` when evidence is ambiguous or sparse.
+- **Offline Fallback:** 100% deterministic local rules with optional Gemini structured output verification.
+
+### 2. Feature 2 (F2): Adaptive Assessments, Real-Time Feedback & Answer Secrecy
+- **Answer Secrecy Prior to Submission (Spec §7, §20):** `StudentQuestion` endpoint response model strictly redacts `correct_answer`, `worked_solution`, and option trap metadata prior to submission.
+- **Post-Submission Feedback:** Step-by-step worked solutions and AI pedagogical feedback are revealed only after submission.
+- **Idempotency Protection:** Prevents duplicate submissions from inflating BKT mastery.
+
+### 3. Feature 3 (F3): Bayesian Knowledge Tracing (BKT)
+- **Standalone Versioned Engine:** Model v1.0.0 with documented prototype parameters:
+  - Prior Knowledge: $P(L_0) = 0.20$
+  - Learning / Transition Rate: $P(T) = 0.15$
+  - Guessing Probability: $P(G) = 0.20$
+  - Slip Probability: $P(S) = 0.10$
+  - Configuration endpoint: `GET /api/model/bkt/config`
+- **Metacognitive Confidence Isolation (Spec §18.2):** Optional self-reported confidence (`low`, `medium`, `high`) provides meta-cognitive learning insights (overconfidence/underconfidence), but **never modifies BKT mastery probabilities**.
+
+### 4. Feature 4 (F4): Interactive Knowledge Graph & Accessible View
+- **Dual Visual Modes:** Interactive React Flow canvas (`@xyflow/react`) complemented by an **Accessible Linear Structured List View** for keyboard-only and screen-reader navigation.
+- **Text-Based Status Badges:** Visual color cues are reinforced by explicit text labels: `Mastered (≥85%)`, `In Progress`, and `Needs Practice (<60%)`.
+- **Acyclic Graph Integrity:** Tarjan/DFS 3-color back-edge cycle detection ensures the curriculum forms a strict Directed Acyclic Graph (DAG) via `GET /api/graph/validate`.
+
+### 5. Feature 5 (F5): Personalized Learning Paths & Explainable Recommendations
+- **Structured Reason Codes (Spec §18.7):** Platform provides transparent, machine-readable reason codes (`spaced_review_due`, `prerequisite_mastery_low`, `recent_error_pattern`, `mastery_uncertain`, `ready_for_harder_question`) with plain-language explanations.
+- **Strict Concept Alignment:** Recommendation logic strictly targets the focal concept without stale cross-concept bleed.
+
+### 6. Feature 6 (F6): Teacher Dashboard & Fair Support Signals
+- **Classroom Overview:** Live cohort metrics, total enrolled learners, and curriculum mastery heatmaps (Recharts).
+- **Fair, Non-Stigmatizing Support Signals (Spec §18.6):** Replaced punitive "high risk" labels with 4 actionable states: `Needs Support`, `Monitoring`, `On Track`, and `Insufficient Data`. Requires $N \ge 3$ diagnostic attempts before assigning support signals.
+- **AI Content Review Quality Gate (Spec §18.4):** Teacher moderation queue (`pending_review`, `approved`, `rejected`, `disabled`). Unapproved AI questions are quarantined from students.
+- **Student Content Reporting (Spec §20):** Integrated modal allowing students to flag incorrect answer keys or typos, with a teacher resolution queue.
+
+### 7. Feature 7 (F7): Reassessment & Honest Progress Tracking
+- **Comparable Fresh Reassessment:** Post-remediation assessment uses fresh comparable questions.
+- **Honest Learning Recovery Score (LRS):**
+  - If reassessment is not yet taken: states `Awaiting Reassessment` ($0.0\%$). Never generates false 100% recovery!
+  - If student answers incorrectly on reassessment (e.g. `1/6` on `1/2 + 1/3`): reports $0.0\%$ recovery with status `Needs Further Practice`.
+  - If student succeeds on reassessment (e.g. `5/6` on `1/2 + 1/3`): reports $100.0\%$ recovery with status `Significant Recovery`.
+  - Transparently handles zero baselines and small sample sizes.
 
 ---
 
-## 🚀 Quickstart & Setup Guide
+## 🛠️ Resolved Testing & Integration Issues
 
-### 1. Prerequisites
-- **Python:** 3.10+ (Tested on Python 3.13 / 3.14)
-- **Node.js:** v18+ (Tested on v24 / npm 11+)
+1. **Issue A (Incorrect Recovery Score):**
+   - *Problem:* Submitting `1/6` on `1/2 + 1/3` previously produced 100% recovery because backend defaulted `post_scores = [1.0]` when no reassessment had been taken.
+   - *Fix:* Eliminated artificial fallback in `routes.py`, updated `recovery_engine.py` to return `Awaiting Reassessment` ($0.0\%$), and verified that wrong answers on reassessment report $0.0\%$ recovery and `Needs Further Practice`.
+2. **Issue B (Misconception Mismatch):**
+   - *Problem:* Recommendation explanation referred to "missing sign reversal in equation isolation" while the displayed question concerned fraction addition.
+   - *Fix:* Resolved query parameter discrepancy (`target_concept_id` vs `concept_id`) in `routes.py`, aligned `RecommendationService` to strictly check target concept errors, and added dynamic concept-to-misconception binding in `MisconceptionGenerator.tsx` and `ai_service.py`.
+3. **Issue C (Responsive Layout Overflow):**
+   - *Problem:* The recovery dashboard and metrics cards caused horizontal overflow beyond the viewport at 1280px and 1366px screen widths.
+   - *Fix:* Introduced `compact` mode for sidebar placement in `RecoveryScoreCard.tsx`, added `min-w-0`, `overflow-hidden`, and flex-wrapping on metric values, and updated `RecoveryPathView.tsx` with responsive grid layouts.
 
-### 2. Environment Configuration
-Copy the template configuration file:
-```bash
-cp .env.example .env
+---
+
+## 💻 Local Setup & Running Instructions (Windows PowerShell)
+
+### Prerequisites
+- **Python:** 3.10+ (Tested with Python 3.13)
+- **Node.js:** 18+ (Tested with Node.js 22 / 24)
+
+### 1. Environment Configuration
+Create a `.env` file in the project root:
+```powershell
+Copy-Item .env.example .env
 ```
-Key configuration parameters:
-- `DEMO_MODE=true` (Runs locally without external credentials required)
-- `DATABASE_MODE=local` (or `supabase`)
-- `GEMINI_API_KEY=` (Optional: Provide your Gemini API key to activate live generative explanations)
-- `FRONTEND_URL=http://localhost:3000`
-- `BACKEND_URL=http://localhost:8000`
+Default offline configuration (`.env`):
+```env
+DEMO_MODE=true
+DATABASE_MODE=local
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+# Optional: GEMINI_API_KEY=your_key_here (Offline fallback works 100% without key)
+```
 
-### 3. Backend Setup & Startup
-Install backend dependencies:
-```bash
+### 2. Backend Setup & Run (FastAPI)
+Open a Windows PowerShell terminal:
+```powershell
 cd backend
+
+# Set Python module path
+$env:PYTHONPATH = (Get-Location).Path
+
+# Install dependencies (if not already installed)
 pip install -r requirements.txt
-```
 
-Run all unit tests:
-```bash
-# In backend directory:
-pytest tests -v
-```
+# Run all 33 unit and integration tests
+python -m pytest tests -v
 
-Run the automated evaluation benchmark suite:
-```bash
-# In backend directory:
+# Run the 6-phase learning-engine evaluation benchmark
 python run_eval.py
-```
 
-Start the FastAPI backend server:
-```bash
+# Start the FastAPI server on port 8000
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
-API Documentation is live at: `http://localhost:8000/api/docs`.
+*Backend Swagger API Documentation:* [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-### 4. Frontend Setup & Startup
-In a separate terminal:
-```bash
+### 3. Frontend Setup & Run (Next.js 16)
+Open a second Windows PowerShell terminal:
+```powershell
 cd frontend
-npm install --legacy-peer-deps
-npm run build
-npm run dev
+
+# Install dependencies
+npm.cmd install --legacy-peer-deps
+
+# Verify production Turbopack build
+npm.cmd run build
+
+# Start the development server
+npm.cmd run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+*Frontend Application:* [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🧪 Verification & End-to-End Walkthrough
+## 🧪 Step-by-Step End-to-End Walkthrough
 
-1. **Visit Landing Page:** Navigate to `http://localhost:3000` to review problem statements, architectural components, and quick-launch links.
-2. **Student Portal (`/student`):**
-   - Take the **Diagnostic Quiz** on *Adding Fractions (Unlike Denominators)*.
-   - Select confidence: **Low**, **Medium**, or **High** (or leave unselected).
-   - Select `2/5` to trigger the *Adding Across Denominators* trap.
-   - Notice the **Confidence Insight Card** (highlighting overconfidence/underconfidence guidance), BKT mastery update, and response-time signal.
-   - Click the flag icon to test **Student Content Reporting** (e.g. submit an issue report).
-   - Switch to the **Spaced Revision** tab to inspect the prioritized due queue and practice scheduling intervals.
-   - Switch to the **Knowledge Graph** tab to see real-time mastery illumination and dependency edges.
-   - Open the **Remediation Path** tab to see topologically sorted prerequisite review steps.
-   - Launch a **Fresh Reassessment** and solve the post-test question correctly (`11/12`) to verify the **Learning Recovery Score (+100% LRS)**.
-   - Test the **Step Mistake Detector** on `2x + 6 = 20` with erroneous step `2x = 26` to see step 1 flagged with sign reversal correction.
-3. **Teacher Diagnostic Center (`/teacher`):**
-   - View **Classroom Analytics**: cohort average mastery, Concept Mastery Heatmap, top shared misconceptions, and student roster.
-   - Switch to the **AI Content Quality Gate** tab: inspect generated questions, approve, reject (with required reason), or quarantine.
-   - Switch to the **Reported Issues** tab: inspect student issue reports and take quarantine or dismissal actions.
-4. **Automated Evaluation Suite:**
-   - Execute `python backend/run_eval.py` to see 100% passed deterministic evaluation across all 4 key algorithmic areas.
+### Student Workflow (`http://localhost:3000/student`)
+1. **Diagnostic Quiz:**
+   - Topic: *Adding Fractions (Unlike Denominators)* (`1/2 + 1/3`).
+   - Select optional confidence level: **High**.
+   - Select answer `1/6` (triggering the *Cross-Multiplication in Addition* trap).
+   - Click **Submit Answer**.
+   - Verify: Graded as **Incorrect**, detected trap is *Cross-Multiplication in Addition*, confidence insight warns about overconfidence, and step-by-step worked solution is revealed.
+2. **Diagnostic Follow-Up Disambiguation:**
+   - If an ambiguous answer is selected, an interactive follow-up clarification card appears to pinpoint the concept without looping.
+3. **Knowledge Graph & Accessible View:**
+   - Switch to the **Knowledge Graph** tab.
+   - Toggle between **Interactive Canvas** and **Accessible List View** (featuring text-based badges `Needs Practice`, `Mastered`, and prerequisite dependencies).
+4. **Spaced Revision:**
+   - Switch to the **Spaced Revision** tab to review concepts prioritized by mastery decay.
+5. **Remediation & Fresh Reassessment:**
+   - Switch to the **Remediation Path** tab to review topological prerequisite steps.
+   - Notice the **Recovery Score Card**: states `Awaiting Reassessment` ($0.0\%$), honestly explaining that post-reassessment is pending.
+   - Click **Launch Fresh Reassessment**.
+   - Answer the reassessment question with `5/6` (correct).
+   - Observe **Learning Recovery Score (+100.0% LRS)** with status `Significant Recovery`.
+
+### Teacher Workflow (`http://localhost:3000/teacher`)
+1. **Classroom Analytics:**
+   - View cohort average mastery and Concept Mastery Heatmap.
+   - Inspect top shared classroom misconceptions and pedagogical interventions.
+2. **Student Roster & Fair Support Signals:**
+   - Inspect student list with transparent support signals: `Needs Support`, `Monitoring`, `On Track`, and `Insufficient Data` (with attempt counts and exact evidence summary).
+3. **AI Content Quality Gate:**
+   - Switch to the **AI Content Quality Gate** tab to review generated questions. Approve or Reject with feedback.
+4. **Reported Issues Center:**
+   - Switch to the **Reported Issues** tab to review student-submitted flags and quarantine flawed questions.
+
+---
+
+## 📊 Verification Test Suite Results
+
+- **Backend Pytest Suite:** **33 / 33 tests passing (100%)** in 1.03s.
+  - `test_backend.py`: BKT formulas, step detector, recovery engine, question verification (7 tests).
+  - `test_evaluation_suite.py`: Multi-phase learning engine evaluation (7 tests).
+  - `test_features.py`: Metacognitive confidence, spaced revision, reason codes, teacher review, student quarantine (7 tests).
+  - `test_spec_additions.py`: Answer secrecy, graph cycle detection, diagnostic follow-ups, fair support signals (4 tests).
+  - `test_local_issues_and_remediation.py`: Fraction grading (`1/6` vs `5/6`), honest recovery score before/after reassessment, zero baseline handling, and recommendation concept alignment (8 tests).
+- **Automated Learning-Engine Evaluation Benchmark:** **6 / 6 phases passing (100% accuracy, Precision=1.0, Recall=1.0, F1=1.0)**.
+- **Frontend Next.js Build:** Compiled successfully with **0 errors and 0 type warnings** across all routes (`/`, `/student`, `/teacher`, `/auth`).

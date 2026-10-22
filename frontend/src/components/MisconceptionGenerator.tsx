@@ -5,12 +5,39 @@ import { api, Question } from '@/lib/api';
 import { useApp } from '@/lib/context';
 import { Sparkles, BrainCircuit, CheckCircle, ShieldCheck } from 'lucide-react';
 
+const CONCEPT_MISCONCEPTIONS: Record<string, { id: string; label: string }[]> = {
+  fraction_addition_like: [
+    { id: 'add_denominators', label: 'Adding Across Denominators (a/b + c/b = (a+c)/2b)' }
+  ],
+  fraction_addition_unlike: [
+    { id: 'add_denominators', label: 'Adding Across Denominators (a/b + c/d = (a+c)/(b+d))' },
+    { id: 'cross_multiply_in_addition', label: 'Cross-Multiplication in Addition (1/2 + 1/3 = 1/6)' }
+  ],
+  algebra_expressions: [
+    { id: 'unlike_terms_merging', label: 'Merging Unlike Algebraic Terms (3x + 4 = 7x)' }
+  ],
+  linear_equations_1step: [
+    { id: 'sign_flip_omission', label: 'Missing Sign Reversal in Isolation' }
+  ],
+  linear_equations_2step: [
+    { id: 'sign_flip_omission', label: 'Missing Sign Reversal in Isolation' }
+  ]
+};
+
 export const MisconceptionGenerator: React.FC = () => {
   const { language, t } = useApp();
-  const [conceptId, setConceptId] = useState<string>('fraction_addition_like');
+  const [conceptId, setConceptId] = useState<string>('fraction_addition_unlike');
   const [misconceptionId, setMisconceptionId] = useState<string>('add_denominators');
   const [loading, setLoading] = useState<boolean>(false);
   const [generatedQ, setGeneratedQ] = useState<Question | null>(null);
+
+  const handleConceptChange = (newCid: string) => {
+    setConceptId(newCid);
+    const valid = CONCEPT_MISCONCEPTIONS[newCid] || [];
+    if (valid.length > 0) {
+      setMisconceptionId(valid[0].id);
+    }
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -28,6 +55,10 @@ export const MisconceptionGenerator: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const availableMisconceptions = CONCEPT_MISCONCEPTIONS[conceptId] || [
+    { id: 'add_denominators', label: 'Adding Across Denominators' }
+  ];
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
@@ -51,7 +82,7 @@ export const MisconceptionGenerator: React.FC = () => {
           <label className="text-xs text-slate-400 block mb-1 font-medium">{t('Target Concept:', 'लक्षित अवधारणा:')}</label>
           <select
             value={conceptId}
-            onChange={(e) => setConceptId(e.target.value)}
+            onChange={(e) => handleConceptChange(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
           >
             <option value="fraction_addition_like">Adding Fractions (Like Denominators)</option>
@@ -69,9 +100,9 @@ export const MisconceptionGenerator: React.FC = () => {
             onChange={(e) => setMisconceptionId(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
           >
-            <option value="add_denominators">Adding Across Denominators (a/b + c/d = (a+c)/(b+d))</option>
-            <option value="sign_flip_omission">Missing Sign Reversal in Isolation</option>
-            <option value="unlike_terms_merging">Merging Unlike Algebraic Terms (3x + 4 = 7x)</option>
+            {availableMisconceptions.map((m) => (
+              <option key={m.id} value={m.id}>{m.label}</option>
+            ))}
           </select>
         </div>
       </div>

@@ -62,7 +62,7 @@ class EvaluationRunner:
     def run_all(self, verbose: bool = True) -> Dict[str, Any]:
         if verbose:
             print("========================================================================")
-            print("    LearnLens AI — Automated Learning-Engine Evaluation Benchmark      ")
+            print("    Thinkflow — Automated Learning-Engine Evaluation Benchmark      ")
             print("========================================================================\n")
 
         phase1 = self.evaluate_misconception_detection(verbose)

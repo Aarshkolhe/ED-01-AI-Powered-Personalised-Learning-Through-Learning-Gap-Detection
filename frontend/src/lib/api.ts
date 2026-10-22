@@ -1,5 +1,5 @@
 /**
- * LearnLens AI Frontend API Client
+ * Thinkflow Frontend API Client
  * Central client for interacting with the backend API or graceful demo fallback
  */
 

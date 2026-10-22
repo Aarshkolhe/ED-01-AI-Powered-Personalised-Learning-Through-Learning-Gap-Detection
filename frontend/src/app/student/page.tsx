@@ -25,8 +25,8 @@ export default function StudentPortalPage() {
   const [isReassessment, setIsReassessment] = useState<boolean>(false);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 md:p-10 max-w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto space-y-8 min-w-0 w-full">
         {/* Header Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
           <div>
@@ -120,16 +120,16 @@ export default function StudentPortalPage() {
 
         {/* Content Tabs */}
         {activeTab === 'diagnostic' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-w-0">
+            <div className="lg:col-span-2 space-y-6 min-w-0">
               <DiagnosticQuiz
                 conceptId={focalConcept}
                 isReassessment={isReassessment}
                 onQuizComplete={() => setActiveTab('recovery')}
               />
             </div>
-            <div className="space-y-6">
-              <RecoveryScoreCard conceptId={focalConcept} />
+            <div className="space-y-6 min-w-0">
+              <RecoveryScoreCard conceptId={focalConcept} compact={true} />
               <SpacedRevisionPanel
                 studentId={activeStudentId}
                 onSelectConceptForPractice={(cid) => {

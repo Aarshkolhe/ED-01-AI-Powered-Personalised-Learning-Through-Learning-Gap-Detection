@@ -103,39 +103,77 @@ class RecoveryEngine:
         """
         Calculates Learning Recovery Score comparing pre-remediation baseline
         to post-remediation performance.
-        LRS = ((post_mean - pre_mean) / max(0.01, (1.0 - pre_mean))) * 100
-        Bounded realistically and labeled strictly as an instructional progress metric.
+        LRS = ((post_mean - pre_mean) / max(0.10, (1.0 - pre_mean))) * 100
+        Honestly handles zero baselines, missing post-assessments, and failed reassessments.
         """
         concept = self.concepts_by_id.get(concept_id)
         concept_name = concept.name if concept else concept_id
 
-        if not pre_scores:
-            pre_mean = 0.0
-        else:
-            pre_mean = round(sum(pre_scores) / len(pre_scores), 3)
+        # Case 1: No assessments at all
+        if not pre_scores and not post_scores:
+            return RecoveryScoreReport(
+                student_id=student_id,
+                concept_id=concept_id,
+                concept_name=concept_name,
+                pre_score=0.0,
+                post_score=0.0,
+                score_delta=0.0,
+                recovery_percentage=0.0,
+                concepts_improved=[],
+                remaining_gaps=[concept_name],
+                baseline_attempts=0,
+                post_attempts=0,
+                status="No Assessment Data",
+                disclaimer="No diagnostic or reassessment attempts recorded yet for this concept."
+            )
 
+        # Calculate pre-remediation baseline
+        pre_attempts = len(pre_scores)
+        pre_mean = round(sum(pre_scores) / pre_attempts, 3) if pre_attempts > 0 else 0.0
+
+        # Case 2: Pre-remediation completed, but no post-remediation reassessment yet
         if not post_scores:
-            post_mean = pre_mean
-        else:
-            post_mean = round(sum(post_scores) / len(post_scores), 3)
+            return RecoveryScoreReport(
+                student_id=student_id,
+                concept_id=concept_id,
+                concept_name=concept_name,
+                pre_score=pre_mean,
+                post_score=0.0,
+                score_delta=0.0,
+                recovery_percentage=0.0,
+                concepts_improved=[],
+                remaining_gaps=[concept_name],
+                baseline_attempts=pre_attempts,
+                post_attempts=0,
+                status="Awaiting Reassessment",
+                disclaimer=f"Baseline diagnostic recorded ({pre_attempts} attempt{'s' if pre_attempts > 1 else ''}). Complete the targeted reassessment to measure learning recovery."
+            )
 
+        # Case 3: Both pre and post scores exist
+        post_attempts = len(post_scores)
+        post_mean = round(sum(post_scores) / post_attempts, 3)
         delta = round(post_mean - pre_mean, 3)
 
         # Potential room for growth
         potential_growth = max(0.10, 1.0 - pre_mean)
-        recovery_pct = round(max(0.0, min(100.0, (delta / potential_growth) * 100.0)), 1)
 
         improved = []
         remaining = []
-        if delta > 0.15:
+
+        if delta > 0.0:
+            recovery_pct = round(max(0.0, min(100.0, (delta / potential_growth) * 100.0)), 1)
             improved.append(concept_name)
-            status = "Significant Recovery"
-        elif delta > 0:
-            improved.append(concept_name)
-            status = "Moderate Improvement"
+            if delta >= 0.50:
+                status = "Significant Recovery"
+            else:
+                status = "Moderate Improvement"
+            disclaimer = f"Progress observed from baseline ({round(pre_mean*100)}%) to reassessment ({round(post_mean*100)}%)."
         else:
+            # Reassessment showed no improvement or regress
+            recovery_pct = 0.0
             remaining.append(concept_name)
             status = "Needs Further Practice"
+            disclaimer = f"Post-remediation assessment scored {round(post_mean*100)}%. Target conceptual gap requires further instruction and practice."
 
         return RecoveryScoreReport(
             student_id=student_id,
@@ -147,9 +185,10 @@ class RecoveryEngine:
             recovery_percentage=recovery_pct,
             concepts_improved=improved,
             remaining_gaps=remaining,
-            baseline_attempts=len(pre_scores),
-            post_attempts=len(post_scores),
-            status=status
+            baseline_attempts=pre_attempts,
+            post_attempts=post_attempts,
+            status=status,
+            disclaimer=disclaimer
         )
 
 recovery_engine = RecoveryEngine()

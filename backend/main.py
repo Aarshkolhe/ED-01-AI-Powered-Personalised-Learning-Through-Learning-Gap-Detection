@@ -10,7 +10,7 @@ from app.api.routes import router
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="LearnLens AI - AI Learning Gap Detection and Targeted Personalised Remediation Backend",
+    description="Thinkflow - AI Learning Gap Detection and Targeted Personalised Remediation Backend",
     openapi_url=f"{settings.API_PREFIX}/openapi.json",
     docs_url=f"{settings.API_PREFIX}/docs"
 )

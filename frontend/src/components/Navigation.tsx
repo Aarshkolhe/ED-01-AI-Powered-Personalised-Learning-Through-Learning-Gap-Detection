@@ -1,98 +1,250 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useApp } from '@/lib/context';
-import { BookOpen, Network, BarChart3, Languages, Sparkles, GraduationCap } from 'lucide-react';
+import {
+  Sparkles,
+  Globe,
+  ChevronDown,
+  Menu,
+  X,
+  GraduationCap,
+  BarChart3,
+  ArrowRight
+} from 'lucide-react';
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
   const { language, setLanguage, activeStudentId, setActiveStudentId, t } = useApp();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isHome = pathname === '/';
   const isStudent = pathname?.startsWith('/student');
   const isTeacher = pathname?.startsWith('/teacher');
 
   return (
-    <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-6">
-            <Link href="/" className="flex items-center space-x-3 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-teal-500/20 group-hover:scale-105 transition-transform">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-teal-300 to-emerald-400 bg-clip-text text-transparent">
-                  LearnLens AI
-                </span>
-                <span className="text-xs text-slate-400 font-medium">Precision Learning Platform</span>
-              </div>
-            </Link>
+    <header className="sticky top-0 z-50 w-full pt-4 sm:pt-6 px-3 sm:px-6 lg:px-8 transition-all">
+      <nav
+        className="max-w-6xl mx-auto rounded-full border border-white/10 bg-[#2D241E]/75 backdrop-blur-2xl shadow-2xl shadow-black/40 transition-all duration-300"
+        aria-label="Main Navigation"
+      >
+        <div className="px-4 sm:px-6">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            {/* Logo and Tagline matching reference */}
+            <div className="flex items-center space-x-5">
+              <Link href="/" className="flex items-center space-x-3 group">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#25DCC6] flex items-center justify-center text-[#2D2D2D] font-bold shadow-md shadow-[#25DCC6]/30 group-hover:scale-105 transition-all duration-300">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#2D2D2D] fill-[#2D2D2D]" />
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-base sm:text-lg font-bold tracking-tight text-white group-hover:text-[#25DCC6] transition-colors">
+                      Thinkflow
+                    </span>
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] text-[#D7C9AE]/70 font-normal tracking-tight -mt-0.5 hidden xs:block">
+                    {t('Personalised Learning. Real Progress.', 'व्यक्तिगत शिक्षण। वास्तविक प्रगति।')}
+                  </span>
+                </div>
+              </Link>
+            </div>
 
-            <div className="hidden md:flex items-center space-x-1 pl-4 border-l border-slate-800">
+            {/* Middle Nav Links */}
+            <div className="hidden md:flex items-center space-x-1 sm:space-x-2 text-sm font-medium">
               <Link
-                href="/student"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
-                  isStudent
-                    ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-900'
+                href="/"
+                className={`relative px-4 py-1.5 rounded-full transition-all text-xs sm:text-sm ${
+                  isHome
+                    ? 'text-white bg-[#1A1410]/70 font-semibold border-b-2 border-[#25DCC6]'
+                    : 'text-[#EAE0D2]/80 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <GraduationCap className="w-4 h-4" />
-                <span>{t('Student Portal', 'छात्र पोर्टल')}</span>
+                {t('Home', 'होम')}
+              </Link>
+              <Link
+                href="/#features"
+                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm text-[#EAE0D2]/80 hover:text-white hover:bg-white/5 transition-all"
+              >
+                {t('Features', 'विशेषताएं')}
+              </Link>
+              <Link
+                href="/#how-it-works"
+                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm text-[#EAE0D2]/80 hover:text-white hover:bg-white/5 transition-all"
+              >
+                {t('How It Works', 'यह कैसे काम करता है')}
+              </Link>
+              <Link
+                href="/#about"
+                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm text-[#EAE0D2]/80 hover:text-white hover:bg-white/5 transition-all"
+              >
+                {t('About', 'परिचय')}
               </Link>
 
-              <Link
-                href="/teacher"
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
-                  isTeacher
-                    ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-900'
-                }`}
+              {/* Direct Portal Switchers if active */}
+              {(isStudent || isTeacher) && (
+                <div className="flex items-center space-x-1 pl-2 border-l border-white/10">
+                  <Link
+                    href="/student"
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      isStudent ? 'bg-[#25DCC6]/20 text-[#25DCC6]' : 'text-[#EAE0D2]/70 hover:text-white'
+                    }`}
+                  >
+                    {t('Student', 'छात्र')}
+                  </Link>
+                  <Link
+                    href="/teacher"
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      isTeacher ? 'bg-[#25DCC6]/20 text-[#25DCC6]' : 'text-[#EAE0D2]/70 hover:text-white'
+                    }`}
+                  >
+                    {t('Teacher', 'शिक्षक')}
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Right Controls */}
+            <div className="hidden sm:flex items-center space-x-2.5">
+              {/* Demo student switcher (only when on student view) */}
+              {isStudent && (
+                <div className="flex items-center space-x-1 bg-[#1A1410]/70 px-2.5 py-1.5 rounded-full border border-white/10 text-xs">
+                  <span className="text-[#D7C9AE]/70 text-[10px]">{t('Student:', 'छात्र:')}</span>
+                  <select
+                    value={activeStudentId}
+                    onChange={(e) => setActiveStudentId(e.target.value)}
+                    className="bg-transparent text-[#25DCC6] focus:outline-none cursor-pointer font-medium text-xs"
+                  >
+                    <option value="student_alex" className="bg-[#2D241E] text-[#EAE0D2]">Alex Chen</option>
+                    <option value="student_priya" className="bg-[#2D241E] text-[#EAE0D2]">Priya Sharma</option>
+                    <option value="student_marcus" className="bg-[#2D241E] text-[#EAE0D2]">Marcus Vance</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Language Selector matching reference (Globe icon + English v) */}
+              <button
+                type="button"
+                onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#EAE0D2]/85 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                title="Toggle Language"
               >
-                <BarChart3 className="w-4 h-4" />
-                <span>{t('Teacher Dashboard', 'शिक्षक डैशबोर्ड')}</span>
+                <Globe className="w-3.5 h-3.5 text-[#D7C9AE]" />
+                <span>{language === 'en' ? 'English' : 'हिन्दी'}</span>
+                <ChevronDown className="w-3 h-3 text-[#D7C9AE]/70" />
+              </button>
+
+              {/* Sign In Button */}
+              <Link
+                href="/auth"
+                className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-medium text-[#EAE0D2] bg-white/5 border border-white/15 hover:bg-white/10 transition-colors"
+              >
+                {t('Sign In', 'साइन इन')}
+              </Link>
+
+              {/* Get Started Button with Turquoise Glow */}
+              <Link
+                href="/student"
+                className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-bold text-[#2D2D2D] bg-[#25DCC6] shadow-[0_0_20px_rgba(37,220,198,0.5)] hover:shadow-[0_0_28px_rgba(37,220,198,0.7)] transition-all hover:scale-[1.02]"
+              >
+                {t('Get Started', 'आरंभ करें')}
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="flex md:hidden items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+                className="p-1.5 rounded-full bg-white/5 border border-white/10 text-[#25DCC6]"
+                title="Language"
+              >
+                <Globe className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-1.5 rounded-full bg-white/5 border border-white/10 text-white"
+                aria-label="Toggle navigation menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-white/10 px-5 py-4 space-y-3 bg-[#2D241E]/95 rounded-b-3xl">
+            <div className="flex flex-col space-y-2 text-sm font-medium">
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-lg text-white hover:bg-white/5"
+              >
+                {t('Home', 'होम')}
+              </Link>
+              <Link
+                href="/#features"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-lg text-[#EAE0D2]/80 hover:text-white hover:bg-white/5"
+              >
+                {t('Features', 'विशेषताएं')}
+              </Link>
+              <Link
+                href="/#how-it-works"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-lg text-[#EAE0D2]/80 hover:text-white hover:bg-white/5"
+              >
+                {t('How It Works', 'यह कैसे काम करता है')}
+              </Link>
+              <Link
+                href="/#about"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-lg text-[#EAE0D2]/80 hover:text-white hover:bg-white/5"
+              >
+                {t('About', 'परिचय')}
+              </Link>
+              <div className="border-t border-white/10 pt-2 flex flex-col space-y-2">
+                <Link
+                  href="/student"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-lg text-[#25DCC6] bg-[#25DCC6]/10 flex items-center space-x-2 font-medium"
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  <span>{t('Launch Student Portal', 'छात्र पोर्टल खोलें')}</span>
+                </Link>
+                <Link
+                  href="/teacher"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-lg text-[#EAE0D2] hover:text-white flex items-center space-x-2 font-medium"
+                >
+                  <BarChart3 className="w-4 h-4 text-[#25DCC6]" />
+                  <span>{t('Teacher Analytics', 'शिक्षक विश्लेषिकी')}</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+              <Link
+                href="/auth"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 text-center py-2 rounded-full border border-white/15 text-xs font-semibold text-[#EAE0D2]"
+              >
+                {t('Sign In', 'साइन इन')}
+              </Link>
+              <Link
+                href="/student"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 text-center py-2 rounded-full bg-[#25DCC6] text-[#2D2D2D] text-xs font-bold shadow-lg shadow-[#25DCC6]/30"
+              >
+                {t('Get Started', 'आरंभ करें')}
               </Link>
             </div>
           </div>
-
-          <div className="flex items-center space-x-4">
-            {/* Student Switcher for Demo testing */}
-            {isStudent && (
-              <div className="flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-                <span className="text-slate-400">{t('Student:', 'छात्र:')}</span>
-                <select
-                  value={activeStudentId}
-                  onChange={(e) => setActiveStudentId(e.target.value)}
-                  className="bg-transparent text-teal-300 focus:outline-none cursor-pointer font-medium"
-                >
-                  <option value="student_alex" className="bg-slate-900">Alex Chen (Focus: Fractions)</option>
-                  <option value="student_priya" className="bg-slate-900">Priya Sharma (High Mastery)</option>
-                  <option value="student_marcus" className="bg-slate-900">Marcus Vance (At-Risk)</option>
-                </select>
-              </div>
-            )}
-
-            {/* Language Toggle */}
-            <button
-              onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-medium text-slate-300 transition-colors"
-              title="Toggle Language"
-            >
-              <Languages className="w-3.5 h-3.5 text-teal-400" />
-              <span>{language === 'en' ? 'हिन्दी (Hindi)' : 'English'}</span>
-            </button>
-
-            <Link
-              href="/auth"
-              className="text-xs px-3 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold transition-all shadow-md shadow-teal-500/20"
-            >
-              {t('Sign In', 'साइन इन')}
-            </Link>
-          </div>
-        </div>
-      </div>
-    </nav>
+        )}
+      </nav>
+    </header>
   );
 };

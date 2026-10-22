@@ -1,5 +1,5 @@
 """
-FastAPI Routes for LearnLens AI Core.
+FastAPI Routes for Thinkflow Core.
 Includes full integration of Features A-F:
 - Feature A: Confidence-Based Learning Insights
 - Feature B: Spaced Revision & Intelligent Practice Scheduling
@@ -383,12 +383,16 @@ def complete_revision(concept_id: str, student_id: Optional[str] = "student_alex
 # ----------------- Feature C: Explainable Recommendations Endpoint -----------------
 @router.get("/recommendations/next", response_model=Recommendation)
 def get_explainable_recommendation(
-    concept_id: Optional[str] = "linear_equations_2step",
+    concept_id: Optional[str] = Query(None),
+    target_concept_id: Optional[str] = Query(None),
     student_id: Optional[str] = "student_alex"
 ):
-    target_concept = repo.concepts.get(concept_id)
+    # Support both concept_id and target_concept_id query params seamlessly
+    active_cid = target_concept_id or concept_id or "fraction_addition_unlike"
+    target_concept = repo.concepts.get(active_cid)
     if not target_concept:
-        raise HTTPException(status_code=404, detail="Concept not found")
+        target_concept = list(repo.concepts.values())[0]
+        active_cid = target_concept.id
 
     student_records = repo.mastery_records.get(student_id, {})
     mastery_map = {cid: r.p_mastery for cid, r in student_records.items()}
@@ -405,7 +409,7 @@ def get_explainable_recommendation(
 
     return recommendation_service.generate_recommendation(
         student_id=student_id,
-        target_concept_id=concept_id,
+        target_concept_id=active_cid,
         target_concept_name=target_concept.name,
         concepts_map=repo.concepts,
         student_mastery_map=mastery_map,
@@ -590,11 +594,6 @@ def get_recovery_score(student_id: str, concept_id: str):
 
     pre_scores = [1.0 if a["is_correct"] else 0.0 for a in student_atts if not a.get("is_reassessment", False)]
     post_scores = [1.0 if a["is_correct"] else 0.0 for a in student_atts if a.get("is_reassessment", False)]
-
-    if not pre_scores:
-        pre_scores = [0.0]
-    if not post_scores:
-        post_scores = [1.0]
 
     return recovery_engine.calculate_recovery_score(
         student_id=student_id,

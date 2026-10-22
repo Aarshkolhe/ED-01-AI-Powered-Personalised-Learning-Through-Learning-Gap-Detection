@@ -3,7 +3,7 @@ Supabase PostgreSQL Schema and Row Level Security (RLS) Policies.
 """
 
 SCHEMA_SQL = """
--- LearnLens AI Supabase PostgreSQL Schema
+-- Thinkflow Supabase PostgreSQL Schema
 
 -- 1. Concepts
 CREATE TABLE IF NOT EXISTS concepts (

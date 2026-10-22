@@ -113,16 +113,16 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
         <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
           {t('Recommended Targeted Remediation Activities', 'अनुशंसित उपचारात्मक गतिविधियाँ')}
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 min-w-0">
           {plan.recommended_activities.map((act) => (
             <div
               key={act.id}
-              className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between"
+              className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between min-w-0 overflow-hidden"
             >
-              <div>
+              <div className="min-w-0">
                 <span className="text-xs font-mono text-teal-400">{act.estimated_minutes} min</span>
-                <h5 className="text-sm font-semibold text-slate-200 mt-1">{act.title}</h5>
-                <p className="text-xs text-slate-400 mt-1.5">{act.description}</p>
+                <h5 className="text-sm font-semibold text-slate-200 mt-1 truncate">{act.title}</h5>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{act.description}</p>
               </div>
             </div>
           ))}
