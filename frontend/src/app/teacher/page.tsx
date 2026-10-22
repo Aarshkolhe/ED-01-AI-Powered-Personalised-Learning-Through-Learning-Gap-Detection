@@ -5,6 +5,7 @@ import { api, ClassroomAnalytics, StudentSummary, SupportSignal } from '@/lib/ap
 import { useApp } from '@/lib/context';
 import { TeacherReviewQueue } from '@/components/TeacherReviewQueue';
 import { TeacherReportedIssues } from '@/components/TeacherReportedIssues';
+import { ThinkFlowLogo } from '@/components/ThinkFlowLogo';
 import {
   Users,
   AlertTriangle,
@@ -82,12 +83,14 @@ export default function TeacherDashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
+    <div className="min-h-screen bg-transparent text-slate-100 p-6 md:p-10">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
-          <div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/30 uppercase tracking-wider">
+          <div className="flex items-center space-x-4">
+            <ThinkFlowLogo size="sm" variant="badge" withLink priority />
+            <div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/30 uppercase tracking-wider">
               {t('Teacher Diagnostic Center', 'शिक्षक विश्लेषिकी केंद्र')}
             </span>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mt-2">
@@ -96,6 +99,7 @@ export default function TeacherDashboardPage() {
             <p className="text-sm text-slate-400 mt-1">
               {t('Live student mastery heatmaps, shared misconceptions & automated pedagogical interventions', 'सजीव दक्षता हीटमैप और भ्रांतियां')}
             </p>
+          </div>
           </div>
 
           {/* Teacher Tab Navigation */}

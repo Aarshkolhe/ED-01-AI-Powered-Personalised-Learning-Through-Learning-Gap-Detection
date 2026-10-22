@@ -1,16 +1,17 @@
 """
-Central In-Memory / Local Repository for Thinkflow.
+Central In-Memory / Local Repository for Thinkflow / LearnLens AI.
 Stores live students, attempts, mastery states, diagnostic history,
-revision schedules, content reviews, and content reports.
+revision schedules, content reviews, content reports, dynamic lessons,
+dynamic assessments, and multi-subject topic catalog.
 """
 
 from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.models.schemas import (
     StudentMastery, Question, Concept, RevisionSchedule,
     RevisionStatus, ContentReport, ContentReportReason,
     ContentReportStatus, ContentReviewStatus, ValidationStatus,
-    ConfidenceLevel
+    ConfidenceLevel, DynamicLesson, TopicCatalogItem
 )
 from app.data.curriculum import CONCEPTS, SEED_QUESTIONS, MISCONCEPTIONS
 from app.services.diagnostic_service import diagnostic_service
@@ -37,6 +38,11 @@ class DataRepository:
         # Feature F: Student Content Reports
         self.content_reports: List[ContentReport] = []
 
+        # Dynamic Learning Additions
+        self.dynamic_lessons: Dict[str, DynamicLesson] = {}
+        self.dynamic_assessments: Dict[str, Dict[str, Any]] = {}
+        self.topic_catalog: Dict[str, TopicCatalogItem] = {}
+
         # Fictional demo users
         self.users = {
             "student_alex": {"id": "student_alex", "name": "Alex Chen", "role": "student", "grade": "8th Grade"},
@@ -47,6 +53,7 @@ class DataRepository:
 
         self._seed_demo_classroom_data()
         self._seed_features_data()
+        self._seed_topic_catalog()
 
     def _seed_demo_classroom_data(self):
         """Seed realistic initial mastery and historical attempts for demo students."""
@@ -73,100 +80,45 @@ class DataRepository:
         self._init_student_mastery("student_marcus", {
             "fractions_intro": 0.60,
             "equivalent_fractions": 0.45,
-            "fraction_addition_like": 0.50,
-            "fraction_addition_unlike": 0.25,
-            "algebra_expressions": 0.40,
+            "fraction_addition_like": 0.40,
+            "fraction_addition_unlike": 0.20,
+            "algebra_expressions": 0.50,
             "linear_equations_1step": 0.35,
             "linear_equations_2step": 0.20
         })
 
-        self.attempts.extend([
-            {
-                "id": "att_01",
-                "student_id": "student_alex",
-                "student_name": "Alex Chen",
-                "question_id": "q_frac_unlike_01",
-                "concept_id": "fraction_addition_unlike",
-                "concept_name": "Adding Fractions (Unlike Denominators)",
-                "student_answer": "2/5",
-                "is_correct": False,
-                "confidence": "high",  # Feature A: Overconfidence!
-                "misconception_id": "add_denominators",
-                "misconception_name": "Adding Across Denominators",
-                "response_time_seconds": 18.5,
-                "created_at": "2026-10-21T10:15:00Z",
-                "is_reassessment": False
-            },
-            {
-                "id": "att_02",
-                "student_id": "student_marcus",
-                "student_name": "Marcus Vance",
-                "question_id": "q_frac_unlike_01",
-                "concept_id": "fraction_addition_unlike",
-                "concept_name": "Adding Fractions (Unlike Denominators)",
-                "student_answer": "2/5",
-                "is_correct": False,
-                "confidence": "medium",
-                "misconception_id": "add_denominators",
-                "misconception_name": "Adding Across Denominators",
-                "response_time_seconds": 24.2,
-                "created_at": "2026-10-21T10:18:00Z",
-                "is_reassessment": False
-            },
-            {
-                "id": "att_03",
-                "student_id": "student_alex",
-                "student_name": "Alex Chen",
-                "question_id": "q_lin_2step_01",
-                "concept_id": "linear_equations_2step",
-                "concept_name": "Two-Step Linear Equations",
-                "student_answer": "13",
-                "is_correct": False,
-                "confidence": "high",  # Overconfidence!
-                "misconception_id": "sign_flip_omission",
-                "misconception_name": "Missing Sign Reversal in Equation Isolation",
-                "response_time_seconds": 32.0,
-                "created_at": "2026-10-21T10:22:00Z",
-                "is_reassessment": False
-            },
-            {
-                "id": "att_04",
-                "student_id": "student_priya",
-                "student_name": "Priya Sharma",
-                "question_id": "q_lin_2step_01",
-                "concept_id": "linear_equations_2step",
-                "concept_name": "Two-Step Linear Equations",
-                "student_answer": "7",
-                "is_correct": True,
-                "confidence": "high",  # Mastery alignment
-                "misconception_id": None,
-                "misconception_name": None,
-                "response_time_seconds": 12.4,
-                "created_at": "2026-10-21T10:25:00Z",
-                "is_reassessment": False
-            }
-        ])
+        # Prepopulate realistic attempts for student_alex
+        self.attempts.append({
+            "student_id": "student_alex",
+            "question_id": "q_frac_like_01",
+            "concept_id": "fraction_addition_like",
+            "student_answer": "4/5",
+            "is_correct": True,
+            "detected_misconception": None,
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat(),
+            "response_time_seconds": 14.2,
+            "confidence": ConfidenceLevel.HIGH.value
+        })
+        self.attempts.append({
+            "student_id": "student_alex",
+            "question_id": "q_frac_unlike_01",
+            "concept_id": "fraction_addition_unlike",
+            "student_answer": "2/5",
+            "is_correct": False,
+            "detected_misconception": "add_denominators",
+            "timestamp": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
+            "response_time_seconds": 24.5,
+            "confidence": ConfidenceLevel.HIGH.value  # Overconfidence pattern!
+        })
 
     def _seed_features_data(self):
-        """Seed AI-generated questions in various review states (Feature D) and initial reports (Feature F)."""
-        now = datetime.utcnow()
-        five_days_ago = (now - timedelta(days=5)).isoformat()
+        """Seed initial data for Features B, D, and F."""
+        now = datetime.now(timezone.utc)
         yesterday = (now - timedelta(days=1)).isoformat()
+        five_days_ago = (now - timedelta(days=5)).isoformat()
 
-        # Feature D: AI-Generated Questions in various review statuses
+        # Feature D: Seed AI Generated questions with diverse review statuses
         ai_questions = [
-            Question(
-                id="q_gen_pending_01",
-                concept_id="linear_equations_2step",
-                prompt="Solve for x: 3x - 5 = 16",
-                correct_answer="x = 7",
-                difficulty=0.55,
-                worked_solution=["Add 5 to both sides: 3x = 21", "Divide by 3: x = 7"],
-                source="generated",
-                review_status=ContentReviewStatus.PENDING_REVIEW,
-                validation_status=ValidationStatus.VALID,
-                active=False
-            ),
             Question(
                 id="q_gen_approved_01",
                 concept_id="linear_equations_1step",
@@ -274,9 +226,94 @@ class DataRepository:
             )
         )
 
+    def _seed_topic_catalog(self):
+        """Seed multi-subject topic catalog distinguishing verified, requested, and proposed topics."""
+        # 1. Verified core concepts in the knowledge graph
+        for c in self.concepts.values():
+            self.topic_catalog[c.id] = TopicCatalogItem(
+                id=c.id,
+                name=c.name,
+                subject="Mathematics",
+                status="verified",
+                prerequisites=c.prerequisites,
+                mastery_threshold=c.mastery_threshold,
+                description=c.description
+            )
+
+        # 2. Physics topics
+        self.topic_catalog["phys_newton_laws"] = TopicCatalogItem(
+            id="phys_newton_laws",
+            name="Newton's Laws of Motion",
+            subject="Physics",
+            status="verified",
+            prerequisites=[],
+            mastery_threshold=0.85,
+            description="Inertia, F = ma, action-reaction pairs, and free body diagrams."
+        )
+        self.topic_catalog["phys_circuits"] = TopicCatalogItem(
+            id="phys_circuits",
+            name="Direct Current Circuits & Ohm's Law",
+            subject="Physics",
+            status="community_requested",
+            prerequisites=["phys_newton_laws"],
+            mastery_threshold=0.80,
+            description="Voltage, current, resistance, and conservation of charge."
+        )
+
+        # 3. Chemistry topics
+        self.topic_catalog["chem_stoichiometry"] = TopicCatalogItem(
+            id="chem_stoichiometry",
+            name="Stoichiometry & Mole Concept",
+            subject="Chemistry",
+            status="verified",
+            prerequisites=[],
+            mastery_threshold=0.85,
+            description="Balancing equations, molar mass, and theoretical yields."
+        )
+        self.topic_catalog["chem_bonding"] = TopicCatalogItem(
+            id="chem_bonding",
+            name="Chemical Bonding & Molecular Structure",
+            subject="Chemistry",
+            status="community_requested",
+            prerequisites=["chem_stoichiometry"],
+            mastery_threshold=0.80,
+            description="Ionic, covalent, metallic bonding, and electronegativity."
+        )
+
+        # 4. Computer Science topics
+        self.topic_catalog["cs_recursion"] = TopicCatalogItem(
+            id="cs_recursion",
+            name="Recursion & Call Stack",
+            subject="Computer Science",
+            status="verified",
+            prerequisites=[],
+            mastery_threshold=0.85,
+            description="Base cases, recursive steps, stack frames, and tree branching."
+        )
+        self.topic_catalog["cs_big_o"] = TopicCatalogItem(
+            id="cs_big_o",
+            name="Algorithmic Complexity & Big-O",
+            subject="Computer Science",
+            status="community_requested",
+            prerequisites=["cs_recursion"],
+            mastery_threshold=0.85,
+            description="Asymptotic runtime and memory analysis."
+        )
+
+        # 5. Biology topics
+        self.topic_catalog["bio_cell_respiration"] = TopicCatalogItem(
+            id="bio_cell_respiration",
+            name="Cellular Respiration & ATP Synthesis",
+            subject="Biology",
+            status="verified",
+            prerequisites=[],
+            mastery_threshold=0.85,
+            description="Glycolysis, Krebs cycle, and electron transport chain."
+        )
+
     def _init_student_mastery(self, student_id: str, mastery_dict: Dict[str, float]):
         self.mastery_records[student_id] = {}
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         for c_id, val in mastery_dict.items():
             self.mastery_records[student_id][c_id] = StudentMastery(
                 student_id=student_id,
@@ -296,7 +333,7 @@ class DataRepository:
                 student_id=student_id,
                 concept_id=concept_id,
                 p_mastery=0.20,
-                last_updated=datetime.utcnow().isoformat(),
+                last_updated=datetime.now(timezone.utc).isoformat(),
                 practice_count=0,
                 correct_count=0,
                 consecutive_correct=0
@@ -305,5 +342,24 @@ class DataRepository:
 
     def record_attempt(self, attempt_data: Dict[str, Any]):
         self.attempts.append(attempt_data)
+
+    def save_dynamic_lesson(self, lesson: DynamicLesson):
+        self.dynamic_lessons[lesson.id] = lesson
+
+    def get_dynamic_lesson(self, lesson_id: str) -> Optional[DynamicLesson]:
+        return self.dynamic_lessons.get(lesson_id)
+
+    def save_assessment_session(self, assessment_id: str, session_data: Dict[str, Any]):
+        self.dynamic_assessments[assessment_id] = session_data
+
+    def get_assessment_session(self, assessment_id: str) -> Optional[Dict[str, Any]]:
+        return self.dynamic_assessments.get(assessment_id)
+
+    def get_topic_catalog(self) -> List[TopicCatalogItem]:
+        return list(self.topic_catalog.values())
+
+    def add_topic_catalog_item(self, item: TopicCatalogItem) -> TopicCatalogItem:
+        self.topic_catalog[item.id] = item
+        return item
 
 repo = DataRepository()

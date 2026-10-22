@@ -234,7 +234,241 @@ export interface StudentSummary {
   active_gaps: string[];
 }
 
+
+export interface AIHealthStatus {
+  status: 'ready' | 'missing_key' | 'invalid_key' | 'rate_limited' | 'out_of_credits' | 'error' | 'offline_fallback';
+  provider: string;
+  model: string;
+  is_configured: boolean;
+  is_fallback: boolean;
+  message: string;
+}
+
+export interface TutorChatMessage {
+  id?: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
+export interface TutorChatRequest {
+  student_id: string;
+  subject: string;
+  topic: string;
+  level: string;
+  messages: TutorChatMessage[];
+  action?: string;
+}
+
+export interface TutorChatResponse {
+  response: string;
+  subject: string;
+  topic: string;
+  level: string;
+  suggested_followups: string[];
+  practice_question?: any;
+  is_fallback: boolean;
+  model: string;
+  error?: string;
+}
+
+export interface DynamicLessonRequest {
+  student_id: string;
+  subject: string;
+  topic: string;
+  level: string;
+  learning_objective?: string;
+  style?: string;
+  difficulty_areas?: string[];
+}
+
+export interface DynamicLesson {
+  id: string;
+  student_id?: string;
+  subject: string;
+  topic: string;
+  level: string;
+  learning_objectives: string[];
+  prerequisites: string[];
+  core_explanation: string;
+  step_by_step_examples: Array<{
+    title: string;
+    steps: string[];
+    takeaway: string;
+  }>;
+  common_mistakes_and_misconceptions: Array<{
+    mistake: string;
+    why_it_happens: string;
+    how_to_fix: string;
+  }>;
+  practice_questions: Array<{
+    prompt: string;
+    hint: string;
+    solution: string;
+  }>;
+  short_summary: string;
+  suggested_next_steps: string[];
+  review_status: string;
+  created_at: string;
+  is_fallback: boolean;
+}
+
+export interface DynamicAssessmentRequest {
+  student_id: string;
+  subject: string;
+  topic: string;
+  difficulty: number;
+  question_count: number;
+  question_type: string;
+}
+
+export interface DynamicAssessmentSession {
+  assessment_id: string;
+  student_id: string;
+  subject: string;
+  topic: string;
+  difficulty: number;
+  questions: Question[];
+  total_questions: number;
+  created_at: string;
+}
+
+export interface DynamicAnswerItem {
+  question_id: string;
+  student_answer: string;
+  confidence?: ConfidenceLevel;
+  reasoning?: string;
+  response_time_seconds?: number;
+}
+
+export interface DynamicAssessmentSubmitRequest {
+  assessment_id: string;
+  student_id: string;
+  answers: DynamicAnswerItem[];
+}
+
+export interface DynamicAssessmentResult {
+  assessment_id: string;
+  student_id: string;
+  subject: string;
+  topic: string;
+  score: number;
+  correct_count: number;
+  total_questions: number;
+  evaluations: AnswerEvaluation[];
+  overall_feedback: string;
+  suggested_next_steps: string[];
+  is_fallback: boolean;
+}
+
+export interface TopicCatalogItem {
+  id: string;
+  name: string;
+  subject: string;
+  status: 'verified' | 'community_requested' | 'ai_proposed';
+  prerequisites: string[];
+  mastery_threshold: number;
+  description?: string;
+}
+
 export const api = {
+
+  // Grok AI Provider & Dynamic Learning Methods
+  getAIHealth: async (): Promise<AIHealthStatus> => {
+    try {
+      const res = await fetch(`${API_BASE}/ai/health`);
+      if (!res.ok) throw new Error('Health check error');
+      return await res.json();
+    } catch {
+      return {
+        status: 'offline_fallback',
+        provider: 'xAI Grok',
+        model: 'grok-2-latest',
+        is_configured: false,
+        is_fallback: true,
+        message: 'Offline fallback active (backend connection unavailable).'
+      };
+    }
+  },
+
+  chatTutor: async (req: TutorChatRequest): Promise<TutorChatResponse> => {
+    const res = await fetch(`${API_BASE}/tutor/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req)
+    });
+    if (!res.ok) throw new Error('Failed to generate tutor response');
+    return res.json();
+  },
+
+  generateDynamicLesson: async (req: DynamicLessonRequest): Promise<DynamicLesson> => {
+    const res = await fetch(`${API_BASE}/lessons/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req)
+    });
+    if (!res.ok) throw new Error('Failed to generate lesson');
+    return res.json();
+  },
+
+  getDynamicLesson: async (lessonId: string): Promise<DynamicLesson> => {
+    const res = await fetch(`${API_BASE}/lessons/${lessonId}`);
+    if (!res.ok) throw new Error('Failed to fetch lesson');
+    return res.json();
+  },
+
+  generateDynamicAssessment: async (req: DynamicAssessmentRequest): Promise<DynamicAssessmentSession> => {
+    const res = await fetch(`${API_BASE}/assessments/generate-dynamic`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req)
+    });
+    if (!res.ok) throw new Error('Failed to generate dynamic assessment');
+    return res.json();
+  },
+
+  submitDynamicAssessment: async (req: DynamicAssessmentSubmitRequest): Promise<DynamicAssessmentResult> => {
+    const res = await fetch(`${API_BASE}/assessments/submit-dynamic`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req)
+    });
+    if (!res.ok) throw new Error('Failed to submit dynamic assessment');
+    return res.json();
+  },
+
+  getTopicCatalog: async (): Promise<TopicCatalogItem[]> => {
+    const res = await fetch(`${API_BASE}/topics/catalog`);
+    if (!res.ok) throw new Error('Failed to fetch topic catalog');
+    return res.json();
+  },
+
+  requestCustomTopic: async (subject: string, name: string, description?: string): Promise<TopicCatalogItem> => {
+    const res = await fetch(`${API_BASE}/topics/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, name, description })
+    });
+    if (!res.ok) throw new Error('Failed to request custom topic');
+    return res.json();
+  },
+
+  getTeacherDynamicContent: async (): Promise<{ lessons: DynamicLesson[]; questions: Question[] }> => {
+    const res = await fetch(`${API_BASE}/teacher/dynamic-content`);
+    if (!res.ok) throw new Error('Failed to fetch dynamic teacher content');
+    return res.json();
+  },
+
+  reviewTeacherDynamicContent: async (contentId: string, action: string, reason?: string, teacherId: string = 'teacher_sarah'): Promise<any> => {
+    const res = await fetch(`${API_BASE}/teacher/dynamic-content/${contentId}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, reason, teacher_id: teacherId })
+    });
+    if (!res.ok) throw new Error('Failed to review dynamic content');
+    return res.json();
+  },
+
   getStatus: async () => {
     const res = await fetch(`${API_BASE}/status`);
     if (!res.ok) throw new Error('Failed to fetch status');
@@ -475,3 +709,6 @@ export const api = {
     return res.json();
   }
 };
+
+
+export const apiClient = api;

@@ -1,6 +1,7 @@
 """
 AI Misconception Diagnostic & Question Generator Service.
-Integrates Google Gemini API with fallback to deterministic generator.
+Integrates xAI Grok as primary generative AI provider,
+with secondary support for Gemini and verified deterministic generators.
 Validates all AI-generated questions against schema and mathematical correctness.
 """
 
@@ -9,9 +10,11 @@ from typing import Optional, Dict, Any, List
 from app.core.config import settings
 from app.models.schemas import Question, QuestionOption
 from app.data.curriculum import CONCEPTS, MISCONCEPTIONS, SEED_QUESTIONS
+from app.services.grok_service import grok_service
 
 class AIService:
     def __init__(self):
+        self.grok = grok_service
         self.client = None
         if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip() and not settings.GEMINI_API_KEY.startswith("your-"):
             try:
@@ -21,16 +24,40 @@ class AIService:
                 print(f"[AIService Warning] Could not initialize Gemini client: {e}")
                 self.client = None
 
-    def explain_error(self, problem: str, student_answer: str, correct_answer: str, misconception: Optional[str] = None, reasoning: Optional[str] = None, language: str = "en") -> str:
-        # If Gemini client is active, attempt AI explanation
+    def explain_error(
+        self,
+        problem: str,
+        student_answer: str,
+        correct_answer: str,
+        misconception: Optional[str] = None,
+        reasoning: Optional[str] = None,
+        language: str = "en",
+        subject: str = "Mathematics"
+    ) -> str:
+        # 1. Primary: If Grok is configured, use Grok
+        if self.grok.is_configured():
+            try:
+                analysis = self.grok.analyze_misconception_generalized(
+                    problem=problem,
+                    student_answer=student_answer,
+                    correct_answer=correct_answer,
+                    reasoning=reasoning,
+                    subject=subject
+                )
+                if analysis.get("remediation_hint"):
+                    return analysis["remediation_hint"]
+            except Exception as e:
+                print(f"[AIService Grok Fallback] {e}")
+
+        # 2. Secondary: If Gemini client is active
         if self.client:
             try:
                 prompt = f"""
-                You are a supportive, encouraging math tutor for Thinkflow.
+                You are a supportive, encouraging tutor for Thinkflow.
                 Problem: {problem}
                 Correct Answer: {correct_answer}
                 Student Answer: {student_answer}
-                Suspected Misconception: {misconception or 'Arithmetic/Transformation error'}
+                Suspected Misconception: {misconception or 'Conceptual or computation error'}
                 Student reasoning: {reasoning or 'None provided'}
                 Language: {language}
 
@@ -44,9 +71,9 @@ class AIService:
                 if response and response.text:
                     return response.text.strip()
             except Exception as e:
-                print(f"[AIService AI Fallback] {e}")
+                print(f"[AIService Gemini Fallback] {e}")
 
-        # Deterministic Fallback
+        # 3. High-Quality Deterministic Fallback
         if misconception and misconception in MISCONCEPTIONS:
             base_hint = MISCONCEPTIONS[misconception]["remediation_hint"]
             if language == "hi":
@@ -55,7 +82,7 @@ class AIService:
         
         if language == "hi":
             return f"समीक्षा: आपका उत्तर '{student_answer}' अपेक्षित उत्तर '{correct_answer}' से मेल नहीं खाता। चरणों को दोबारा जांचें।"
-        return f"Nice effort! Your answer '{student_answer}' differs from '{correct_answer}'. Review the operation step by step to identify where the sign or denominator shifted."
+        return f"Nice effort! Your answer '{student_answer}' differs from '{correct_answer}'. Review the operation step by step to identify where the balance or denominator shifted."
 
     def generate_targeted_question(self, concept_id: str, misconception_id: str, difficulty: float = 0.5, language: str = "en") -> Question:
         """
@@ -145,39 +172,21 @@ class AIService:
             )
         }
 
-        # If LLM is available, we could attempt generation and validate
-        if self.client:
+        # If Grok is available, we could attempt generation and validate
+        if self.grok.is_configured():
             try:
-                system_instruction = (
-                    "You are a math assessment generator for Thinkflow. "
-                    "Output ONLY valid JSON matching this structure: "
-                    "{\"id\": str, \"prompt\": str, \"correct_answer\": str, \"worked_solution\": [str], \"options\": [{\"id\": str, \"text\": str, \"misconception_id\": Optional[str], \"misconception_explanation\": Optional[str]}]}"
+                grok_questions = self.grok.generate_assessment_questions(
+                    subject="Mathematics",
+                    topic=concept_id,
+                    difficulty=difficulty,
+                    question_count=1
                 )
-                user_msg = f"Generate a diagnostic multiple-choice question for concept '{concept_id}' specifically detecting misconception '{misconception_id}' at difficulty {difficulty}."
-                response = self.client.models.generate_content(
-                    model=settings.GEMINI_MODEL,
-                    contents=f"{system_instruction}\n{user_msg}"
-                )
-                if response and response.text:
-                    cleaned_json = response.text.strip().replace("```json", "").replace("```", "")
-                    data = json.loads(cleaned_json)
-                    # Mathematical validation
-                    if "correct_answer" in data and len(data.get("options", [])) >= 2:
-                        opt_texts = [o["text"].strip().lower() for o in data["options"]]
-                        if data["correct_answer"].strip().lower() in opt_texts:
-                            # Valid question generated!
-                            return Question(
-                                id=data.get("id", f"gen_{concept_id}_{misconception_id}"),
-                                concept_id=concept_id,
-                                prompt=data["prompt"],
-                                question_type="multiple_choice",
-                                options=[QuestionOption(**o) for o in data["options"]],
-                                correct_answer=data["correct_answer"],
-                                worked_solution=data.get("worked_solution", ["Follow algebraic order of operations."]),
-                                difficulty=difficulty
-                            )
+                if grok_questions:
+                    grok_q = grok_questions[0]
+                    grok_q.concept_id = concept_id
+                    return grok_q
             except Exception as e:
-                print(f"[AIService Generator Validation/LLM Error] {e}. Using verified template.")
+                print(f"[AIService Grok Generator] {e}. Using verified template.")
 
         # Return validated verified fallback
         if misconception_id in fallback_map:

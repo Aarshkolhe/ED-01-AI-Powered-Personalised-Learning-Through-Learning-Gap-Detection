@@ -327,3 +327,125 @@ class ClassroomAnalytics(BaseModel):
     concept_heatmaps: List[Dict[str, Any]]
     recent_attempts: List[Dict[str, Any]]
     intervention_recommendations: List[Dict[str, Any]]
+
+
+# =======================================================================
+# xAI Grok & Dynamic Learning Schemas
+# =======================================================================
+
+class AIProviderHealth(BaseModel):
+    status: str  # "ready", "missing_key", "rate_limited", "invalid_key", "error", "offline_fallback"
+    provider: str = "xAI Grok"
+    model: str
+    is_configured: bool
+    is_fallback: bool
+    message: str
+
+class TutorChatMessage(BaseModel):
+    id: Optional[str] = None
+    role: str  # "user" | "assistant" | "system"
+    content: str
+    timestamp: Optional[str] = None
+
+class TutorChatRequest(BaseModel):
+    student_id: str = "student_alex"
+    subject: str = "Mathematics"
+    topic: str
+    level: str = "intermediate"  # "beginner" | "intermediate" | "advanced"
+    messages: List[TutorChatMessage] = []
+    action: Optional[str] = None  # "simplify", "worked_example", "analogy", "summary", "practice_question", "general"
+
+class TutorChatResponse(BaseModel):
+    response: str
+    subject: str
+    topic: str
+    level: str
+    suggested_followups: List[str] = []
+    practice_question: Optional[Dict[str, Any]] = None
+    is_fallback: bool = False
+    model: str = "grok-2-latest"
+    error: Optional[str] = None
+
+class DynamicLessonRequest(BaseModel):
+    student_id: str = "student_alex"
+    subject: str = "Mathematics"
+    topic: str
+    level: str = "intermediate"  # "beginner" | "intermediate" | "advanced"
+    learning_objective: Optional[str] = None
+    style: Optional[str] = "concept_first"  # "concept_first" | "analogy_heavy" | "step_by_step"
+    difficulty_areas: Optional[List[str]] = None
+
+class DynamicLesson(BaseModel):
+    id: str
+    student_id: Optional[str] = None
+    subject: str
+    topic: str
+    level: str
+    learning_objectives: List[str] = []
+    prerequisites: List[str] = []
+    core_explanation: str
+    step_by_step_examples: List[Dict[str, Any]] = []
+    common_mistakes_and_misconceptions: List[Dict[str, str]] = []
+    practice_questions: List[Dict[str, Any]] = []
+    short_summary: str
+    suggested_next_steps: List[str] = []
+    review_status: ContentReviewStatus = ContentReviewStatus.APPROVED
+    created_at: str
+    is_fallback: bool = False
+
+class DynamicAssessmentRequest(BaseModel):
+    student_id: str = "student_alex"
+    subject: str = "Mathematics"
+    topic: str
+    difficulty: float = 0.5
+    question_count: int = 3
+    question_type: str = "multiple_choice"  # "multiple_choice" | "short_answer" | "mixed"
+
+class DynamicAssessmentSession(BaseModel):
+    assessment_id: str
+    student_id: str
+    subject: str
+    topic: str
+    difficulty: float
+    questions: List[StudentQuestion]  # Answer secrecy: no correct answers!
+    total_questions: int
+    created_at: str
+
+class DynamicAnswerItem(BaseModel):
+    question_id: str
+    student_answer: str
+    confidence: Optional[ConfidenceLevel] = None
+    reasoning: Optional[str] = None
+    response_time_seconds: Optional[float] = 10.0
+
+class DynamicAssessmentSubmitRequest(BaseModel):
+    assessment_id: str
+    student_id: str = "student_alex"
+    answers: List[DynamicAnswerItem]
+
+class DynamicAssessmentResult(BaseModel):
+    assessment_id: str
+    student_id: str
+    subject: str
+    topic: str
+    score: float
+    correct_count: int
+    total_questions: int
+    evaluations: List[AnswerEvaluation]
+    overall_feedback: str
+    suggested_next_steps: List[str]
+    is_fallback: bool = False
+
+class TopicCatalogItem(BaseModel):
+    id: str
+    name: str
+    subject: str
+    status: str  # "verified", "community_requested", "ai_proposed"
+    prerequisites: List[str] = []
+    mastery_threshold: float = 0.85
+    description: Optional[str] = None
+
+class ContentModerationAction(BaseModel):
+    action: str  # "approve" | "reject" | "disable"
+    teacher_id: str = "teacher_default"
+    reason: Optional[str] = None

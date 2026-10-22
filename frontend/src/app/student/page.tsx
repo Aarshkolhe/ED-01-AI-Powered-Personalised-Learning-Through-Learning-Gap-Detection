@@ -8,6 +8,9 @@ import { RecoveryScoreCard } from '@/components/RecoveryScoreCard';
 import { StepMistakeDetector } from '@/components/StepMistakeDetector';
 import { MisconceptionGenerator } from '@/components/MisconceptionGenerator';
 import { SpacedRevisionPanel } from '@/components/SpacedRevisionPanel';
+import { AITutorView } from '@/components/AITutorView';
+import { DynamicLessonAndAssessmentView } from '@/components/DynamicLessonAndAssessmentView';
+import { ThinkFlowLogo } from '@/components/ThinkFlowLogo';
 import { useApp } from '@/lib/context';
 import {
   Network,
@@ -15,34 +18,68 @@ import {
   Route,
   TrendingUp,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  Bot,
+  BookOpen
 } from 'lucide-react';
 
 export default function StudentPortalPage() {
   const { activeStudentId, t } = useApp();
-  const [activeTab, setActiveTab] = useState<'diagnostic' | 'revision' | 'graph' | 'recovery' | 'steps' | 'generator'>('diagnostic');
+  const [activeTab, setActiveTab] = useState<'ask-ai' | 'lessons' | 'diagnostic' | 'revision' | 'graph' | 'recovery' | 'steps' | 'generator'>('ask-ai');
   const [focalConcept, setFocalConcept] = useState<string>('fraction_addition_unlike');
   const [isReassessment, setIsReassessment] = useState<boolean>(false);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 md:p-10 max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-transparent text-slate-100 p-4 sm:p-6 md:p-10 max-w-full overflow-x-hidden">
       <div className="max-w-7xl mx-auto space-y-8 min-w-0 w-full">
         {/* Header Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
-          <div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/30 uppercase tracking-wider">
-              {t('Interactive Student Portal', 'छात्र पोर्टल')}
-            </span>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mt-2">
-              {t('Precision Mastery & Gap Remediation', 'सटीक दक्षता एवं लर्निंग गैप सुधार')}
-            </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              {t('Bayesian Knowledge Tracing (BKT) active for session', 'सत्र के लिए बायेसियन नॉलेज ट्रेसिंग सक्रिय')} ({activeStudentId})
-            </p>
+          <div className="flex items-center space-x-4">
+            <ThinkFlowLogo size="sm" withLink priority />
+            <div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/30 uppercase tracking-wider">
+                {t('Interactive Student Portal', 'छात्र पोर्टल')}
+              </span>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mt-1">
+                {t('Precision Mastery & Gap Remediation', 'सटीक दक्षता एवं लर्निंग गैप सुधार')}
+              </h1>
+              <p className="text-sm text-slate-400 mt-0.5">
+                {t('Bayesian Knowledge Tracing (BKT) active for session', 'सत्र के लिए बायेसियन नॉलेज ट्रेसिंग सक्रिय')} ({activeStudentId})
+              </p>
+            </div>
           </div>
 
           {/* Tab Navigation */}
           <div className="flex flex-wrap items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
+            {/* Primary Tab: Ask ThinkFlow AI */}
+            <button
+              onClick={() => setActiveTab('ask-ai')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
+                activeTab === 'ask-ai'
+                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span>{t('Ask ThinkFlow (AI)', 'थिंकफ्लो एआई से पूछें')}</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold uppercase">
+                Grok
+              </span>
+            </button>
+
+            {/* Dynamic Multi-Subject Lessons */}
+            <button
+              onClick={() => setActiveTab('lessons')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
+                activeTab === 'lessons'
+                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{t('Lessons & Practice', 'पाठ एवं अभ्यास')}</span>
+            </button>
+
             <button
               onClick={() => { setActiveTab('diagnostic'); setIsReassessment(false); }}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
@@ -119,6 +156,13 @@ export default function StudentPortalPage() {
         </div>
 
         {/* Content Tabs */}
+        {activeTab === 'ask-ai' && (
+          <AITutorView />
+        )}
+
+        {activeTab === 'lessons' && (
+          <DynamicLessonAndAssessmentView />
+        )}
         {activeTab === 'diagnostic' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-w-0">
             <div className="lg:col-span-2 space-y-6 min-w-0">

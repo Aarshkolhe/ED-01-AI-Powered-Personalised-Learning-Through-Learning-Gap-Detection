@@ -18,7 +18,12 @@ from app.models.schemas import (
     RecoveryPlan, RecoveryScoreReport, ClassroomAnalytics, StudentMastery,
     ConfidenceLevel, RevisionSchedule, RevisionStatus, Recommendation, RecommendationReasonCode,
     ContentReviewStatus, ContentReport, ContentReportReason, ContentReportStatus,
-    ErrorTaxonomyCategory, SupportSignal, StudentSummary, BKTModelVersion
+    ErrorTaxonomyCategory, SupportSignal, StudentSummary, BKTModelVersion,
+    AIProviderHealth, TutorChatMessage, TutorChatRequest, TutorChatResponse,
+    DynamicLessonRequest, DynamicLesson,
+    DynamicAssessmentRequest, DynamicAssessmentSession, DynamicAnswerItem,
+    DynamicAssessmentSubmitRequest, DynamicAssessmentResult,
+    TopicCatalogItem, ContentModerationAction, ValidationStatus
 )
 from app.data.repository import repo
 from app.data.curriculum import CONCEPTS, SEED_QUESTIONS, MISCONCEPTIONS
@@ -32,6 +37,7 @@ from app.services.recommendation_service import recommendation_service
 from app.services.content_review_service import content_review_service
 from app.services.graph_service import graph_service
 from app.services.diagnostic_service import diagnostic_service
+from app.services.grok_service import grok_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -39,15 +45,23 @@ router = APIRouter()
 # ----------------- Status & Config -----------------
 @router.get("/status")
 def get_system_status():
+    ai_health = grok_service.check_health()
     return {
         "status": "operational",
         "demo_mode": settings.DEMO_MODE,
         "database_mode": settings.DATABASE_MODE,
+        "grok_configured": grok_service.is_configured(),
+        "grok_status": ai_health["status"],
         "gemini_active": ai_service.client is not None,
-        "model": settings.GEMINI_MODEL,
+        "model": settings.XAI_MODEL,
         "concepts_loaded": len(repo.concepts),
         "questions_loaded": len(repo.questions)
     }
+
+@router.get("/ai/health", response_model=AIProviderHealth)
+def get_ai_health():
+    health = grok_service.check_health()
+    return AIProviderHealth(**health)
 
 # ----------------- Curriculum & Knowledge Graph -----------------
 @router.get("/concepts", response_model=List[Concept])
@@ -765,3 +779,292 @@ def get_bkt_config():
     """
     return BKTModelVersion()
 
+
+
+# =======================================================================
+# Dynamic Multi-Subject AI Tutor, Lessons & Dynamic Assessment Engine
+# =======================================================================
+
+@router.post("/tutor/chat", response_model=TutorChatResponse)
+def tutor_chat(req: TutorChatRequest):
+    """
+    Interactive conversational AI tutor across arbitrary subjects and topics.
+    Preserves dialogue history and supports quick pedagogical modifiers
+    (simplify, worked_example, analogy, summary, practice_question).
+    """
+    return grok_service.chat_tutor(
+        messages=req.messages,
+        subject=req.subject,
+        topic=req.topic,
+        level=req.level,
+        action=req.action
+    )
+
+@router.post("/lessons/generate", response_model=DynamicLesson)
+def generate_dynamic_lesson(req: DynamicLessonRequest):
+    """
+    Generates a structured, pedagogical lesson covering objectives, prerequisites,
+    core explanation, step-by-step examples, common traps, and practice checks.
+    """
+    lesson = grok_service.generate_lesson(
+        subject=req.subject,
+        topic=req.topic,
+        level=req.level,
+        learning_objective=req.learning_objective,
+        style=req.style,
+        difficulty_areas=req.difficulty_areas,
+        student_id=req.student_id
+    )
+    repo.save_dynamic_lesson(lesson)
+    return lesson
+
+@router.get("/lessons/{lesson_id}", response_model=DynamicLesson)
+def get_lesson(lesson_id: str):
+    """Retrieves a previously generated lesson by ID."""
+    lesson = repo.get_dynamic_lesson(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return lesson
+
+@router.post("/assessments/generate-dynamic", response_model=DynamicAssessmentSession)
+def generate_dynamic_assessment(req: DynamicAssessmentRequest):
+    """
+    Generates dynamic diagnostic assessment items for any subject and topic.
+    CRITICAL (Answer Secrecy): Returns ONLY student-safe questions (StudentQuestion)
+    with correct answers and worked solutions strictly omitted before submission.
+    """
+    import time
+    questions = grok_service.generate_assessment_questions(
+        subject=req.subject,
+        topic=req.topic,
+        difficulty=req.difficulty,
+        question_count=req.question_count,
+        question_type=req.question_type
+    )
+    assessment_id = f"assess_{req.topic.lower().replace(' ', '_')[:12]}_{int(time.time())}"
+    session_data = {
+        "id": assessment_id,
+        "student_id": req.student_id,
+        "subject": req.subject,
+        "topic": req.topic,
+        "difficulty": req.difficulty,
+        "questions": questions,  # Complete questions with correct answers stored server-side only!
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    repo.save_assessment_session(assessment_id, session_data)
+
+    # Convert to student view (removes correct_answer and worked_solution)
+    student_questions = [q.to_student_view() for q in questions]
+    return DynamicAssessmentSession(
+        assessment_id=assessment_id,
+        student_id=req.student_id,
+        subject=req.subject,
+        topic=req.topic,
+        difficulty=req.difficulty,
+        questions=student_questions,
+        total_questions=len(student_questions),
+        created_at=session_data["created_at"]
+    )
+
+@router.post("/assessments/submit-dynamic", response_model=DynamicAssessmentResult)
+def submit_dynamic_assessment(req: DynamicAssessmentSubmitRequest):
+    """
+    Grades dynamic assessment submissions against server-side answer keys.
+    Reveals worked solutions post-submission, evaluates confidence insights,
+    analyzes generalized misconceptions, and updates BKT deterministically
+    only if the topic is part of the verified knowledge graph.
+    """
+    session = repo.get_assessment_session(req.assessment_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Assessment session not found")
+
+    questions_by_id = {q.id: q for q in session["questions"]}
+    evaluations: List[AnswerEvaluation] = []
+    correct_count = 0
+
+    for ans in req.answers:
+        q = questions_by_id.get(ans.question_id)
+        if not q:
+            continue
+
+        is_correct = (ans.student_answer.strip().lower() == q.correct_answer.strip().lower())
+        if is_correct:
+            correct_count += 1
+
+        # Generalized Misconception Analysis
+        diag = grok_service.analyze_misconception_generalized(
+            problem=q.prompt,
+            student_answer=ans.student_answer,
+            correct_answer=q.correct_answer,
+            reasoning=ans.reasoning,
+            subject=session.get("subject", "Mathematics"),
+            concept_id=q.concept_id
+        )
+
+        # Feature A: Confidence-Based Insight
+        conf_insight = None
+        if ans.confidence:
+            conf_insight = confidence_service.analyze_confidence(
+                confidence=ans.confidence,
+                is_correct=is_correct
+            )
+
+        # Deterministic BKT mastery update ONLY if concept exists in authoritative knowledge graph
+        # Student confidence and AI opinions NEVER alter BKT probabilities directly
+        prev_m = 0.50
+        new_m = 0.50
+        is_mastered = False
+        if q.concept_id in repo.concepts:
+            mastery_rec = repo.get_or_create_student_mastery(req.student_id, q.concept_id)
+            prev_m = mastery_rec.p_mastery
+            new_m = bkt_engine.update_mastery(prev_m, is_correct)
+            mastery_rec.p_mastery = new_m
+            mastery_rec.last_updated = datetime.now(timezone.utc).isoformat()
+            mastery_rec.practice_count += 1
+            if is_correct:
+                mastery_rec.correct_count += 1
+                mastery_rec.consecutive_correct += 1
+            else:
+                mastery_rec.consecutive_correct = 0
+            is_mastered = (new_m >= repo.concepts[q.concept_id].mastery_threshold)
+
+        # Record attempt log for teacher analytics and student history
+        repo.record_attempt({
+            "student_id": req.student_id,
+            "question_id": q.id,
+            "concept_id": q.concept_id,
+            "student_answer": ans.student_answer,
+            "is_correct": is_correct,
+            "detected_misconception": diag.get("misconception_id"),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "response_time_seconds": ans.response_time_seconds or 10.0,
+            "confidence": ans.confidence.value if ans.confidence else None
+        })
+
+        evaluations.append(AnswerEvaluation(
+            is_correct=is_correct,
+            correct_answer=q.correct_answer,
+            concept_id=q.concept_id,
+            detected_misconception=diag.get("misconception_id"),
+            misconception_explanation=diag.get("remediation_hint"),
+            error_taxonomy=diag.get("category"),
+            ai_feedback=diag.get("remediation_hint"),
+            worked_solution=q.worked_solution,
+            previous_mastery=prev_m,
+            updated_mastery=new_m,
+            mastery_change=round(new_m - prev_m, 4),
+            is_mastered=is_mastered,
+            response_time_seconds=ans.response_time_seconds or 10.0,
+            time_signal="normal",
+            confidence_insight=conf_insight
+        ))
+
+    total = len(req.answers) or len(session["questions"])
+    score = round(correct_count / total, 2) if total > 0 else 0.0
+
+    overall_feedback = (
+        f"Mastery demonstration: {correct_count}/{total} correct on {session['topic']}."
+        if score >= 0.70 else
+        f"Score: {correct_count}/{total} on {session['topic']}. Review the step-by-step solutions below to target learning gaps."
+    )
+
+    return DynamicAssessmentResult(
+        assessment_id=req.assessment_id,
+        student_id=req.student_id,
+        subject=session.get("subject", "Mathematics"),
+        topic=session.get("topic", ""),
+        score=score,
+        correct_count=correct_count,
+        total_questions=total,
+        evaluations=evaluations,
+        overall_feedback=overall_feedback,
+        suggested_next_steps=[
+            "Review worked solutions and explanations for any incorrect answers.",
+            "Ask the AI Tutor for an analogy or simplified explanation on any step you found tricky.",
+            "Generate another practice assessment when you feel ready to reassess."
+        ]
+    )
+
+@router.get("/topics/catalog", response_model=List[TopicCatalogItem])
+def get_topic_catalog():
+    """
+    Lists multi-subject topic catalog, clearly distinguishing verified concepts
+    in the knowledge graph, community-requested topics, and AI-proposed concepts.
+    """
+    return repo.get_topic_catalog()
+
+@router.post("/topics/request", response_model=TopicCatalogItem)
+def request_custom_topic(
+    subject: str = Body(..., embed=True),
+    name: str = Body(..., embed=True),
+    description: Optional[str] = Body(None, embed=True)
+):
+    """
+    Allows a student to request a custom topic for study without polluting
+    authoritative knowledge graph prerequisite edges.
+    """
+    topic_id = f"custom_{name.lower().replace(' ', '_')[:16]}"
+    item = TopicCatalogItem(
+        id=topic_id,
+        name=name,
+        subject=subject,
+        status="community_requested",
+        prerequisites=[],
+        mastery_threshold=0.85,
+        description=description or f"Custom student-requested topic in {subject}."
+    )
+    return repo.add_topic_catalog_item(item)
+
+@router.get("/teacher/dynamic-content")
+def get_teacher_dynamic_content():
+    """
+    Allows teachers to review dynamically generated lessons and questions.
+    """
+    lessons = list(repo.dynamic_lessons.values())
+    dynamic_qs = [
+        q for q in repo.questions.values()
+        if q.source == "generated"
+    ]
+    return {
+        "lessons": lessons,
+        "questions": dynamic_qs
+    }
+
+@router.post("/teacher/dynamic-content/{content_id}/review")
+def review_dynamic_content(
+    content_id: str,
+    action: ContentModerationAction
+):
+    """
+    Enables teacher to approve, reject, or disable dynamically generated lessons or questions.
+    """
+    # Check if question
+    if content_id in repo.questions:
+        q = repo.questions[content_id]
+        if action.action == "approve":
+            q.review_status = ContentReviewStatus.APPROVED
+            q.active = True
+        elif action.action == "reject":
+            q.review_status = ContentReviewStatus.REJECTED
+            q.active = False
+            q.rejection_reason = action.reason or "Rejected by teacher"
+        elif action.action == "disable":
+            q.review_status = ContentReviewStatus.DISABLED
+            q.active = False
+            q.rejection_reason = action.reason or "Disabled by teacher"
+        q.reviewed_by = action.teacher_id
+        q.reviewed_at = datetime.now(timezone.utc).isoformat()
+        return {"status": "success", "content_type": "question", "content_id": content_id, "review_status": q.review_status}
+
+    # Check if lesson
+    if content_id in repo.dynamic_lessons:
+        les = repo.dynamic_lessons[content_id]
+        if action.action == "approve":
+            les.review_status = ContentReviewStatus.APPROVED
+        elif action.action == "reject":
+            les.review_status = ContentReviewStatus.REJECTED
+        elif action.action == "disable":
+            les.review_status = ContentReviewStatus.DISABLED
+        return {"status": "success", "content_type": "lesson", "content_id": content_id, "review_status": les.review_status}
+
+    raise HTTPException(status_code=404, detail="Content item not found")

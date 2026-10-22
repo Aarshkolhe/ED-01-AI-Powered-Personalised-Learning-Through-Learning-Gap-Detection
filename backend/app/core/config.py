@@ -17,7 +17,15 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: Optional[str] = os.getenv("SUPABASE_ANON_KEY", None)
     SUPABASE_SERVICE_ROLE_KEY: Optional[str] = os.getenv("SUPABASE_SERVICE_ROLE_KEY", None)
     
-    # Gemini AI
+    # xAI Grok API Configuration (Primary Generative AI Provider)
+    XAI_API_KEY: Optional[str] = os.getenv("XAI_API_KEY", None)
+    XAI_MODEL: str = os.getenv("XAI_MODEL", "grok-2-latest")
+    XAI_BASE_URL: str = os.getenv("XAI_BASE_URL", "https://api.x.ai/v1")
+    XAI_TIMEOUT_SECONDS: float = float(os.getenv("XAI_TIMEOUT_SECONDS", "15.0"))
+    XAI_MAX_TOKENS: int = int(os.getenv("XAI_MAX_TOKENS", "1500"))
+    XAI_MAX_RETRIES: int = int(os.getenv("XAI_MAX_RETRIES", "2"))
+
+    # Legacy / Alternate Gemini AI (Secondary fallback)
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY", None)
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     

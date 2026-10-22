@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/context';
-import { Sparkles, Shield, User, GraduationCap, Lock, ArrowRight } from 'lucide-react';
+import { ThinkFlowLogo } from '@/components/ThinkFlowLogo';
+import { Shield, User, GraduationCap, Lock, ArrowRight } from 'lucide-react';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -22,16 +23,15 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#2D2D2D] text-[#EAE0D2] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-transparent text-[#EAE0D2] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-to-tr from-[#25DCC6]/10 to-[#A68763]/15 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[320px] bg-gradient-to-tr from-[#25DCC6]/10 to-[#A68763]/15 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center relative z-10">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#25DCC6] to-[#A68763] flex items-center justify-center text-[#2D2D2D] font-bold mx-auto shadow-xl shadow-[#25DCC6]/20">
-          <Sparkles className="w-6 h-6 text-[#2D2D2D]" />
-        </div>
-        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-[#EAE0D2]">
-          {t('Sign in to Thinkflow', 'Thinkflow में साइन इन करें')}
+        {/* Official ThinkFlow Logo */}
+        <ThinkFlowLogo size="lg" variant="card" withLink className="mx-auto mb-4 shadow-xl" priority />
+        <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-white">
+          {t('Sign in to ThinkFlow', 'ThinkFlow में साइन इन करें')}
         </h2>
         <p className="mt-1 text-xs text-[#D7C9AE]/80 font-medium">
           {t('Precision AI-driven learning gap detection & recovery', 'सटीक एआई लर्निंग गैप पहचान और सुधार')}
@@ -39,9 +39,9 @@ export default function AuthPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 relative z-10">
-        <div className="bg-[#2D2D2D]/85 backdrop-blur-xl py-8 px-6 shadow-2xl rounded-2xl border border-[#D7C9AE]/25 sm:px-10">
+        <div className="bg-[#2D231C]/85 backdrop-blur-xl py-8 px-6 shadow-2xl rounded-2xl border border-white/10 sm:px-10">
           {/* Role selector tab */}
-          <div className="flex bg-[#2D2D2D] p-1 rounded-xl border border-[#D7C9AE]/20 mb-6">
+          <div className="flex bg-[#1E1611] p-1 rounded-xl border border-white/10 mb-6">
             <button
               type="button"
               onClick={() => setRole('student')}
@@ -77,7 +77,7 @@ export default function AuthPage() {
                 <select
                   value={selectedStudent}
                   onChange={(e) => setSelectedStudent(e.target.value)}
-                  className="w-full bg-[#2D2D2D] border border-[#D7C9AE]/30 rounded-xl px-3 py-2.5 text-xs text-[#EAE0D2] focus:outline-none focus:border-[#25DCC6]"
+                  className="w-full bg-[#1E1611] border border-white/15 rounded-xl px-3 py-2.5 text-xs text-[#EAE0D2] focus:outline-none focus:border-[#25DCC6]"
                 >
                   <option value="student_alex">Alex Chen (Focus: Fractions Gap)</option>
                   <option value="student_priya">Priya Sharma (High Algebra Mastery)</option>
@@ -93,7 +93,7 @@ export default function AuthPage() {
                   type="text"
                   disabled
                   value="sarah.jenkins@district.edu (Ms. Sarah Jenkins)"
-                  className="w-full bg-[#2D2D2D] border border-[#D7C9AE]/20 rounded-xl px-3 py-2.5 text-xs text-[#D7C9AE]/60 cursor-not-allowed"
+                  className="w-full bg-[#1E1611] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-[#D7C9AE]/60 cursor-not-allowed"
                 />
               </div>
             )}
@@ -107,7 +107,7 @@ export default function AuthPage() {
                   type="password"
                   disabled
                   value="••••••••••••"
-                  className="w-full bg-[#2D2D2D] border border-[#D7C9AE]/20 rounded-xl px-3 py-2.5 text-xs text-[#D7C9AE]/60 cursor-not-allowed"
+                  className="w-full bg-[#1E1611] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-[#D7C9AE]/60 cursor-not-allowed"
                 />
                 <Lock className="w-4 h-4 text-[#D7C9AE]/40 absolute right-3 top-2.5" />
               </div>
@@ -124,7 +124,7 @@ export default function AuthPage() {
             </div>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-[#D7C9AE]/15 text-[11px] text-[#D7C9AE]/70 text-center">
+          <div className="mt-6 pt-4 border-t border-white/10 text-[11px] text-[#D7C9AE]/70 text-center">
             {t(
               'Demo mode uses seeded, authenticated role records. Supabase auth configured for cloud sync.',
               'डेमो मोड स्वचालित रूप से डेटाबेस से जुड़ा है।'
