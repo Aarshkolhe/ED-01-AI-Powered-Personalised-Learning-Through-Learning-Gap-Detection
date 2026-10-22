@@ -36,7 +36,7 @@ export default function RootLayout({
           <div className="relative z-10 flex min-h-screen flex-col">
             <Navigation />
             <main className="flex-1">{children}</main>
-            <footer className="border-t border-slate-800/80 bg-[#0B1120]/80 py-6 text-center text-xs text-slate-400 backdrop-blur-md">
+            <footer className="border-t border-white/10 bg-black/40 py-6 text-center text-xs text-white/60 backdrop-blur-md">
               <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center space-x-3">
                   <ThinkFlowLogo size="sm" withLink />

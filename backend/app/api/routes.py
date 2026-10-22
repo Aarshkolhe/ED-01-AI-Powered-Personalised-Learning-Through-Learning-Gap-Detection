@@ -37,7 +37,7 @@ from app.services.recommendation_service import recommendation_service
 from app.services.content_review_service import content_review_service
 from app.services.graph_service import graph_service
 from app.services.diagnostic_service import diagnostic_service
-from app.services.grok_service import grok_service
+from app.services.gemini_service import gemini_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -45,23 +45,24 @@ router = APIRouter()
 # ----------------- Status & Config -----------------
 @router.get("/status")
 def get_system_status():
-    ai_health = grok_service.check_health()
+    ai_health = gemini_service.check_health()
     return {
         "status": "operational",
         "demo_mode": settings.DEMO_MODE,
         "database_mode": settings.DATABASE_MODE,
-        "grok_configured": grok_service.is_configured(),
-        "grok_status": ai_health["status"],
-        "gemini_active": ai_service.is_gemini_active(),
+        "ai_provider": "Google Gemini",
+        "gemini_configured": gemini_service.is_configured(),
+        "gemini_status": ai_health["status"],
+        "gemini_active": gemini_service.is_configured(),
         "gemini_model": settings.GEMINI_MODEL,
-        "model": settings.XAI_MODEL,
+        "model": settings.GEMINI_MODEL,
         "concepts_loaded": len(repo.concepts),
         "questions_loaded": len(repo.questions)
     }
 
 @router.get("/ai/health", response_model=AIProviderHealth)
 def get_ai_health():
-    health = grok_service.check_health()
+    health = gemini_service.check_health()
     return AIProviderHealth(**health)
 
 # ----------------- Curriculum & Knowledge Graph -----------------
@@ -78,15 +79,43 @@ def get_knowledge_graph(student_id: Optional[str] = "student_alex"):
     nodes = []
     edges = []
 
-    positions = {
-        "fractions_intro": {"x": 100, "y": 80},
-        "equivalent_fractions": {"x": 350, "y": 50},
-        "fraction_addition_like": {"x": 350, "y": 140},
-        "fraction_addition_unlike": {"x": 650, "y": 90},
-        "algebra_expressions": {"x": 100, "y": 280},
-        "linear_equations_1step": {"x": 380, "y": 280},
-        "linear_equations_2step": {"x": 680, "y": 280},
-    }
+    # Deterministic rank-based positioning for fallback / REST API consumers
+    # Calculates prerequisite depth for each concept dynamically without hardcoding topic names
+    concept_map = repo.concepts
+    rank_map: Dict[str, int] = {}
+
+    def compute_depth(cid: str, visited: set) -> int:
+        if cid in rank_map:
+            return rank_map[cid]
+        if cid not in concept_map:
+            return 0
+        c_obj = concept_map[cid]
+        if not c_obj.prerequisites:
+            rank_map[cid] = 0
+            return 0
+        visited.add(cid)
+        depths = [
+            compute_depth(p, visited.copy())
+            for p in c_obj.prerequisites
+            if p not in visited
+        ]
+        rank_map[cid] = (max(depths) + 1) if depths else 0
+        return rank_map[cid]
+
+    for cid in concept_map:
+        compute_depth(cid, set())
+
+    by_rank: Dict[int, List[str]] = {}
+    for cid, r in rank_map.items():
+        by_rank.setdefault(r, []).append(cid)
+
+    computed_positions: Dict[str, Dict[str, int]] = {}
+    for r, cids in by_rank.items():
+        for idx, cid in enumerate(cids):
+            computed_positions[cid] = {
+                "x": 40 + r * 420,
+                "y": 40 + idx * 260
+            }
 
     student_records = repo.mastery_records.get(student_id, {})
 
@@ -96,7 +125,7 @@ def get_knowledge_graph(student_id: Optional[str] = "student_alex"):
         is_gap = p_val < 0.60
         is_mastered = p_val >= c.mastery_threshold
 
-        pos = positions.get(c.id, {"x": 200, "y": 200})
+        pos = computed_positions.get(c.id, {"x": 40, "y": 40})
 
         nodes.append({
             "id": c.id,
@@ -787,13 +816,14 @@ def get_bkt_config():
 # =======================================================================
 
 @router.post("/tutor/chat", response_model=TutorChatResponse)
+@router.post("/ai/chat", response_model=TutorChatResponse)
 def tutor_chat(req: TutorChatRequest):
     """
-    Interactive conversational AI tutor across arbitrary subjects and topics.
+    Interactive conversational AI tutor across arbitrary subjects and topics using Google Gemini.
     Preserves dialogue history and supports quick pedagogical modifiers
     (simplify, worked_example, analogy, summary, practice_question).
     """
-    res = grok_service.chat_tutor(
+    res = gemini_service.chat_tutor(
         messages=req.messages,
         subject=req.subject,
         topic=req.topic,
@@ -801,25 +831,45 @@ def tutor_chat(req: TutorChatRequest):
         action=req.action
     )
     if res.error:
-        if res.error_code == "out_of_credits":
+        if res.error_code == "missing_key":
             raise HTTPException(
-                status_code=403,
-                detail="Your xAI team needs active API credits or the required API access to generate responses."
+                status_code=400,
+                detail=res.error or "Google Gemini API key is missing. Please set GEMINI_API_KEY in backend environment."
             )
         elif res.error_code == "invalid_key":
             raise HTTPException(
                 status_code=401,
-                detail="Invalid xAI API Key (401 Unauthorized). Please check your credentials in the xAI Console."
+                detail=res.error or "Invalid Google Gemini API Key. Please verify your credentials at https://aistudio.google.com/apikey"
+            )
+        elif res.error_code == "permission_denied":
+            raise HTTPException(
+                status_code=403,
+                detail=res.error or "Access denied by Google Gemini API. Please check your project access at https://aistudio.google.com/"
+            )
+        elif res.error_code == "out_of_credits":
+            raise HTTPException(
+                status_code=429,
+                detail=res.error or "Google Gemini API quota exceeded or billing not enabled. Manage your quota at https://aistudio.google.com/"
             )
         elif res.error_code == "rate_limited":
             raise HTTPException(
                 status_code=429,
-                detail="xAI Grok rate limit reached. Please try again shortly."
+                detail=res.error or "Google Gemini API rate limit reached. Please try again shortly."
+            )
+        elif res.error_code == "unsupported_model":
+            raise HTTPException(
+                status_code=404,
+                detail=res.error or f"Gemini model '{gemini_service.model}' is not supported or not found."
+            )
+        elif res.error_code == "safety_blocked":
+            raise HTTPException(
+                status_code=400,
+                detail=res.error or "Response was blocked by Google Gemini safety policies."
             )
         else:
             raise HTTPException(
                 status_code=502,
-                detail=res.error or "xAI Grok provider error occurred."
+                detail=res.error or "Google Gemini provider error occurred."
             )
     return res
 
@@ -829,7 +879,7 @@ def generate_dynamic_lesson(req: DynamicLessonRequest):
     Generates a structured, pedagogical lesson covering objectives, prerequisites,
     core explanation, step-by-step examples, common traps, and practice checks.
     """
-    lesson = grok_service.generate_lesson(
+    lesson = gemini_service.generate_lesson(
         subject=req.subject,
         topic=req.topic,
         level=req.level,
@@ -857,7 +907,7 @@ def generate_dynamic_assessment(req: DynamicAssessmentRequest):
     with correct answers and worked solutions strictly omitted before submission.
     """
     import time
-    questions = grok_service.generate_assessment_questions(
+    questions = gemini_service.generate_assessment_questions(
         subject=req.subject,
         topic=req.topic,
         difficulty=req.difficulty,
@@ -915,7 +965,7 @@ def submit_dynamic_assessment(req: DynamicAssessmentSubmitRequest):
             correct_count += 1
 
         # Generalized Misconception Analysis
-        diag = grok_service.analyze_misconception_generalized(
+        diag = gemini_service.analyze_misconception_generalized(
             problem=q.prompt,
             student_answer=ans.student_answer,
             correct_answer=q.correct_answer,

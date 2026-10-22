@@ -104,9 +104,9 @@ export const Navigation: React.FC = () => {
                     onChange={(e) => setActiveStudentId(e.target.value)}
                     className="bg-transparent text-white focus:outline-none cursor-pointer font-medium text-xs"
                   >
-                    <option value="student_alex" className="bg-[#0B1120] text-slate-200">Alex Chen</option>
-                    <option value="student_priya" className="bg-[#0B1120] text-slate-200">Priya Sharma</option>
-                    <option value="student_marcus" className="bg-[#0B1120] text-slate-200">Marcus Vance</option>
+                    <option value="student_alex" className="bg-[#18110c] text-white">Alex Chen</option>
+                    <option value="student_priya" className="bg-[#18110c] text-white">Priya Sharma</option>
+                    <option value="student_marcus" className="bg-[#18110c] text-white">Marcus Vance</option>
                   </select>
                 </div>
               )}
@@ -195,7 +195,7 @@ export const Navigation: React.FC = () => {
               >
                 {t('About', 'परिचय')}
               </Link>
-              <div className="border-t border-slate-800 pt-2 flex flex-col space-y-2">
+              <div className="border-t border-white/10 pt-2 flex flex-col space-y-2">
                 <Link
                   href="/student"
                   onClick={() => setMobileMenuOpen(false)}
@@ -215,7 +215,7 @@ export const Navigation: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
               <Link
                 href="/auth"
                 onClick={() => setMobileMenuOpen(false)}

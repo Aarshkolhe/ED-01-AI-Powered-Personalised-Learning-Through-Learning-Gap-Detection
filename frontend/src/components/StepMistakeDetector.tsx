@@ -59,8 +59,8 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+    <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="flex items-center justify-between pb-4 border-b border-white/10">
         <div>
           <h3 className="text-base font-bold text-slate-100 flex items-center space-x-2">
             <Sparkles className="w-5 h-5 text-teal-400" />
@@ -70,7 +70,7 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
             {t('Deconstructs intermediate transformation steps to isolate the earliest faulty operation.', 'आरंभिक गलत बदलाव को अलग करने के लिए मध्यवर्ती चरणों का विश्लेषण करता है।')}
           </p>
         </div>
-        <div className="px-3 py-1 bg-slate-800 rounded-lg text-xs font-mono text-teal-300">
+        <div className="px-3 py-1 bg-black/40 rounded-xl text-xs font-mono text-teal-300 border border-white/10 backdrop-blur-md">
           Target: {problem} &rarr; x = {defaultAnswer}
         </div>
       </div>
@@ -82,7 +82,7 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
         </label>
         {steps.map((step, idx) => (
           <div key={idx} className="flex items-center space-x-3">
-            <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 text-xs font-bold text-slate-400">
+            <span className="w-7 h-7 flex items-center justify-center rounded-xl bg-white/10 text-xs font-bold text-white/80">
               {idx + 1}
             </span>
             <input
@@ -90,12 +90,12 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
               value={step}
               onChange={(e) => handleStepChange(idx, e.target.value)}
               placeholder={`Step ${idx + 1} (e.g. 2x = 14)`}
-              className="flex-1 bg-slate-950 border border-slate-800 focus:border-teal-500 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-200 focus:outline-none transition-colors"
+              className="flex-1 bg-black/40 border border-white/10 focus:border-teal-400 rounded-2xl px-4 py-2.5 text-sm font-mono text-slate-100 placeholder-white/40 focus:outline-none transition-colors backdrop-blur-md"
             />
             {steps.length > 1 && (
               <button
                 onClick={() => removeStep(idx)}
-                className="text-slate-500 hover:text-rose-400 text-xs px-2"
+                className="text-white/50 hover:text-rose-400 text-xs px-2"
                 title="Remove step"
               >
                 &times;
@@ -107,7 +107,7 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
         <div className="flex items-center space-x-3 pt-2">
           <button
             onClick={addStep}
-            className="text-xs font-medium text-slate-400 hover:text-teal-300 bg-slate-800/60 hover:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700/50 transition-colors"
+            className="text-xs font-medium text-white/80 hover:text-teal-300 bg-black/40 hover:bg-white/10 px-3.5 py-1.5 rounded-xl border border-white/10 transition-colors backdrop-blur-md"
           >
             + {t('Add Step', 'चरण जोड़ें')}
           </button>
@@ -115,7 +115,7 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
           <button
             onClick={analyze}
             disabled={loading}
-            className="ml-auto text-xs font-semibold px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 transition-colors flex items-center space-x-2 shadow-lg shadow-teal-500/20"
+            className="ml-auto text-xs font-semibold px-5 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 transition-colors flex items-center space-x-2 shadow-lg shadow-teal-500/20 active:scale-95"
           >
             {loading ? (
               <span className="animate-spin w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full" />
@@ -129,9 +129,9 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
 
       {/* Analysis Output Result */}
       {analysis && (
-        <div className="mt-6 pt-5 border-t border-slate-800">
+        <div className="mt-6 pt-5 border-t border-white/10">
           {analysis.has_error ? (
-            <div className="bg-rose-950/30 border border-rose-500/40 rounded-xl p-4">
+            <div className="bg-rose-950/20 border border-rose-500/40 rounded-2xl p-5 backdrop-blur-xl">
               <div className="flex items-start space-x-3">
                 <AlertOctagon className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
@@ -148,7 +148,7 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
                     {analysis.error_explanation}
                   </p>
 
-                  <div className="mt-4 bg-slate-950/70 p-3 rounded-lg border border-slate-800">
+                  <div className="mt-4 bg-black/30 p-3.5 rounded-xl border border-white/10 backdrop-blur-md">
                     <div className="text-xs text-slate-400 flex items-center space-x-2">
                       <CornerDownRight className="w-3.5 h-3.5 text-emerald-400" />
                       <span className="font-semibold text-emerald-400">{t('Correct Transformation:', 'सही रूपांतरण:')}</span>
@@ -161,7 +161,7 @@ export const StepMistakeDetector: React.FC<StepMistakeDetectorProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-4 flex items-center space-x-3">
+            <div className="bg-emerald-950/20 border border-emerald-500/40 rounded-2xl p-5 flex items-center space-x-3 backdrop-blur-xl">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
               <div>
                 <h4 className="text-sm font-bold text-emerald-300">

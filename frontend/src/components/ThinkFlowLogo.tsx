@@ -20,22 +20,22 @@ export const ThinkFlowLogo: React.FC<ThinkFlowLogoProps> = ({
   withLink = false,
   priority = false,
 }) => {
-  // Sizing configurations that fit within navigation and page headers with zero overlap
+  // Sizing configurations preserving exact display height and aspect ratio (1024:827)
   const config = {
-    sm: { height: 'h-9 sm:h-10', imgW: 59, imgH: 40, text: 'text-base', subText: 'text-[9px]' },
-    md: { height: 'h-10 sm:h-12', imgW: 71, imgH: 48, text: 'text-lg sm:text-xl', subText: 'text-[10px]' },
-    lg: { height: 'h-16 sm:h-20', imgW: 118, imgH: 80, text: 'text-2xl', subText: 'text-xs' },
-    xl: { height: 'h-24 sm:h-32', imgW: 190, imgH: 128, text: 'text-3xl', subText: 'text-sm' },
-  }[size] || { height: 'h-10 sm:h-12', imgW: 71, imgH: 48, text: 'text-lg sm:text-xl', subText: 'text-[10px]' };
+    sm: { height: 'h-9 sm:h-10', imgW: 50, imgH: 40, text: 'text-base', subText: 'text-[9px]' },
+    md: { height: 'h-10 sm:h-12', imgW: 60, imgH: 48, text: 'text-lg sm:text-xl', subText: 'text-[10px]' },
+    lg: { height: 'h-16 sm:h-20', imgW: 99, imgH: 80, text: 'text-2xl', subText: 'text-xs' },
+    xl: { height: 'h-24 sm:h-32', imgW: 159, imgH: 128, text: 'text-3xl', subText: 'text-sm' },
+  }[size] || { height: 'h-10 sm:h-12', imgW: 60, imgH: 48, text: 'text-lg sm:text-xl', subText: 'text-[10px]' };
 
   const logoContent = (
     <div className={`inline-flex items-center space-x-2.5 sm:space-x-3 ${className}`}>
-      {/* Deliberate, neatly rounded white logo container */}
+      {/* Transparent container preserving the logo's transparent background */}
       <div
-        className={`${config.height} aspect-[776/524] bg-white rounded-xl px-1.5 py-0.5 shadow-sm border border-slate-200/40 flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-[1.02]`}
+        className={`${config.height} aspect-[1024/827] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-[1.02]`}
       >
         <Image
-          src="/thinkflow-logo.jpg"
+          src="/thinkflow-logo-transparent.png"
           alt="ThinkFlow — Smarter Learning, Deeper Understanding"
           width={config.imgW}
           height={config.imgH}

@@ -1,18 +1,15 @@
 """
-Google Gemini Provider Service for ThinkFlow AI.
+Google Gemini AI Provider Service for ThinkFlow.
 Provides real AI tutor conversations, dynamic lesson generation,
 dynamic assessment authoring, and generalized misconception detection
-using the official Google Gemini API (generativelanguage.googleapis.com).
-
-Delegates to GrokService deterministic fallback engine when
-no API key is configured or the Gemini API is unreachable.
+using the official Google GenAI SDK (from google import genai).
 """
 
+import os
 import json
 import time
 import logging
 from typing import Optional, Dict, Any, List, Tuple
-import httpx
 
 from app.core.config import settings
 from app.models.schemas import (
@@ -22,34 +19,41 @@ from app.models.schemas import (
     ContentReviewStatus, ValidationStatus, ErrorTaxonomyCategory
 )
 
-logger = logging.getLogger("learnlens.gemini")
+logger = logging.getLogger("thinkflow.gemini")
 
 
 class GeminiService:
     def __init__(self):
-        self.timeout = float(getattr(settings, "XAI_TIMEOUT_SECONDS", 15.0))
-        self.max_tokens = int(getattr(settings, "XAI_MAX_TOKENS", 1500))
-        self.max_retries = int(getattr(settings, "XAI_MAX_RETRIES", 2))
+        self.timeout = float(getattr(settings, "GEMINI_TIMEOUT_SECONDS", 15.0))
+        self.max_tokens = int(getattr(settings, "GEMINI_MAX_TOKENS", 1500))
+        self.max_retries = int(getattr(settings, "GEMINI_MAX_RETRIES", 2))
+        self._cached_client = None
+        self._cached_key = None
 
     @property
     def api_key(self) -> Optional[str]:
-        k = settings.GEMINI_API_KEY
+        k = getattr(settings, "GEMINI_API_KEY", None) or os.getenv("GEMINI_API_KEY")
         if k and k.strip() and not k.strip().startswith("your-"):
             return k.strip()
         return None
 
     @property
     def model(self) -> str:
-        return settings.GEMINI_MODEL
-
-    def _api_url(self, json_mode: bool = False) -> str:
-        return (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.model}:generateContent?key={self.api_key}"
-        )
+        return getattr(settings, "GEMINI_MODEL", None) or os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
     def is_configured(self) -> bool:
         return self.api_key is not None
+
+    def _get_client(self):
+        """Returns initialized google.genai Client."""
+        if not self.is_configured():
+            return None
+        current_key = self.api_key
+        if self._cached_client is None or self._cached_key != current_key:
+            from google import genai
+            self._cached_client = genai.Client(api_key=current_key)
+            self._cached_key = current_key
+        return self._cached_client
 
     # ------------------------------------------------------------------
     # Health check
@@ -63,205 +67,94 @@ class GeminiService:
                 "model": self.model,
                 "is_configured": False,
                 "is_fallback": True,
-                "message": "GEMINI_API_KEY not configured or set to placeholder. Deterministic fallback active."
+                "message": "GEMINI_API_KEY not configured. Set your Google Gemini API key in .env"
+            }
+
+        client = self._get_client()
+        if not client:
+            return {
+                "status": "missing_key",
+                "provider": "Google Gemini",
+                "model": self.model,
+                "is_configured": False,
+                "is_fallback": True,
+                "message": "GEMINI_API_KEY not configured. Set your Google Gemini API key in .env"
             }
 
         try:
-            payload = {
-                "contents": [{"parts": [{"text": "ping"}]}],
-                "generationConfig": {"maxOutputTokens": 5}
-            }
-            with httpx.Client(timeout=min(self.timeout, 5.0)) as client:
-                res = client.post(self._api_url(), json=payload)
-                if res.status_code == 200:
-                    return {
-                        "status": "ready",
-                        "provider": "Google Gemini",
-                        "model": self.model,
-                        "is_configured": True,
-                        "is_fallback": False,
-                        "message": "Google Gemini API connected and verified operational."
-                    }
-                elif res.status_code == 400:
-                    # API key valid but bad request still means connectivity works
-                    body = res.text.lower()
-                    if "api key not valid" in body or "api_key_invalid" in body:
-                        return {
-                            "status": "invalid_key",
-                            "provider": "Google Gemini",
-                            "model": self.model,
-                            "is_configured": True,
-                            "is_fallback": True,
-                            "message": "Provided GEMINI_API_KEY was rejected. Check your key at https://aistudio.google.com/apikey"
-                        }
-                    return {
-                        "status": "ready",
-                        "provider": "Google Gemini",
-                        "model": self.model,
-                        "is_configured": True,
-                        "is_fallback": False,
-                        "message": "Google Gemini API reachable."
-                    }
-                elif res.status_code == 401 or res.status_code == 403:
-                    body = res.text.lower()
-                    if "quota" in body or "billing" in body or "exceeded" in body:
-                        return {
-                            "status": "out_of_credits",
-                            "provider": "Google Gemini",
-                            "model": self.model,
-                            "is_configured": True,
-                            "is_fallback": True,
-                            "message": "Gemini API quota exceeded or billing not enabled. Check https://aistudio.google.com/apikey"
-                        }
-                    return {
-                        "status": "invalid_key",
-                        "provider": "Google Gemini",
-                        "model": self.model,
-                        "is_configured": True,
-                        "is_fallback": True,
-                        "message": "Gemini API key rejected (401/403). Check your credentials."
-                    }
-                elif res.status_code == 429:
-                    return {
-                        "status": "rate_limited",
-                        "provider": "Google Gemini",
-                        "model": self.model,
-                        "is_configured": True,
-                        "is_fallback": True,
-                        "message": "Gemini rate limit reached (429). Operating in fallback mode."
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "provider": "Google Gemini",
-                        "model": self.model,
-                        "is_configured": True,
-                        "is_fallback": True,
-                        "message": f"Gemini returned HTTP {res.status_code}: {res.text[:120]}"
-                    }
-        except httpx.TimeoutException:
+            from google.genai import types
+            config = types.GenerateContentConfig(max_output_tokens=5)
+            res = client.models.generate_content(
+                model=self.model,
+                contents="ping",
+                config=config
+            )
             return {
-                "status": "provider_unavailable",
+                "status": "ready",
                 "provider": "Google Gemini",
                 "model": self.model,
                 "is_configured": True,
-                "is_fallback": True,
-                "message": "Gemini API timed out during health check. Operating in fallback mode."
+                "is_fallback": False,
+                "message": "Google Gemini API connected and verified operational."
             }
         except Exception as e:
+            err_text = str(e)
+            err_lower = err_text.lower()
+            logger.warning(f"Gemini health check error: {type(e).__name__} - {err_text}")
+
+            if "401" in err_text or "api_key_invalid" in err_lower or "api key not valid" in err_lower:
+                return {
+                    "status": "invalid_key",
+                    "provider": "Google Gemini",
+                    "model": self.model,
+                    "is_configured": True,
+                    "is_fallback": True,
+                    "message": "Provided GEMINI_API_KEY was rejected. Check your key at https://aistudio.google.com/apikey"
+                }
+            if "403" in err_text or "permission_denied" in err_lower:
+                return {
+                    "status": "permission_denied",
+                    "provider": "Google Gemini",
+                    "model": self.model,
+                    "is_configured": True,
+                    "is_fallback": True,
+                    "message": "Gemini API access denied (403). Check project access at https://aistudio.google.com/"
+                }
+            if "404" in err_text or "not_found" in err_lower:
+                return {
+                    "status": "unsupported_model",
+                    "provider": "Google Gemini",
+                    "model": self.model,
+                    "is_configured": True,
+                    "is_fallback": True,
+                    "message": f"Gemini model '{self.model}' is unavailable or not found. Check GEMINI_MODEL in .env"
+                }
+            if "429" in err_text or "resource_exhausted" in err_lower or "quota" in err_lower:
+                if "quota" in err_lower or "billing" in err_lower:
+                    return {
+                        "status": "out_of_credits",
+                        "provider": "Google Gemini",
+                        "model": self.model,
+                        "is_configured": True,
+                        "is_fallback": True,
+                        "message": "Gemini API quota exceeded or billing not enabled. Visit https://aistudio.google.com/"
+                    }
+                return {
+                    "status": "rate_limited",
+                    "provider": "Google Gemini",
+                    "model": self.model,
+                    "is_configured": True,
+                    "is_fallback": True,
+                    "message": "Gemini rate limit reached (429). Please try again shortly."
+                }
             return {
-                "status": "offline_fallback",
+                "status": "error",
                 "provider": "Google Gemini",
                 "model": self.model,
                 "is_configured": True,
                 "is_fallback": True,
-                "message": f"Connection check failed: {type(e).__name__}. Operating in fallback mode."
+                "message": f"Gemini error: {err_text[:120]}"
             }
-
-    # ------------------------------------------------------------------
-    # Core Gemini API call
-    # ------------------------------------------------------------------
-    def _call_gemini(self, messages: List[Dict[str, str]], json_mode: bool = False) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Executes raw call to Google Gemini with retries, bounded backoff,
-        and error translation.
-        Returns: (response_text, error_message)
-        """
-        if not self.is_configured():
-            return None, "GEMINI_API_KEY is not configured"
-
-        # Build Gemini request format
-        system_text = None
-        contents = []
-        for m in messages:
-            role = m.get("role", "user")
-            text = m.get("content", "")
-            if role == "system":
-                system_text = text
-                continue
-            # Gemini uses "model" for assistant role
-            gemini_role = "model" if role == "assistant" else "user"
-            contents.append({
-                "role": gemini_role,
-                "parts": [{"text": text}]
-            })
-
-        # Ensure contents is not empty and starts with "user"
-        if not contents:
-            contents.append({"role": "user", "parts": [{"text": "Hello"}]})
-
-        payload: Dict[str, Any] = {"contents": contents}
-
-        if system_text:
-            payload["systemInstruction"] = {"parts": [{"text": system_text}]}
-
-        gen_config: Dict[str, Any] = {
-            "maxOutputTokens": self.max_tokens,
-            "temperature": 0.2 if json_mode else 0.4
-        }
-        if json_mode:
-            gen_config["responseMimeType"] = "application/json"
-        payload["generationConfig"] = gen_config
-
-        backoff = 1.0
-        for attempt in range(self.max_retries + 1):
-            try:
-                with httpx.Client(timeout=self.timeout) as client:
-                    resp = client.post(self._api_url(), json=payload)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        candidates = data.get("candidates", [])
-                        if candidates and "content" in candidates[0]:
-                            parts = candidates[0]["content"].get("parts", [])
-                            if parts and "text" in parts[0]:
-                                return parts[0]["text"].strip(), None
-                        # Check for blocked content
-                        if candidates and candidates[0].get("finishReason") == "SAFETY":
-                            return None, "Response blocked by Gemini safety filters."
-                        return None, "Empty response from Gemini"
-                    elif resp.status_code in (400, 401, 403):
-                        body = resp.text.lower()
-                        if "api key not valid" in body or "api_key_invalid" in body:
-                            logger.warning("Gemini API key rejected (key redacted)")
-                            return None, "Invalid Gemini API Key. Please check your credentials at https://aistudio.google.com/apikey"
-                        if "quota" in body or "billing" in body or "exceeded" in body:
-                            logger.warning("Gemini API quota/billing issue (key redacted)")
-                            return None, "Gemini API quota exceeded or billing not enabled."
-                        if resp.status_code == 403:
-                            logger.warning(f"Gemini API access denied: HTTP {resp.status_code} (key redacted)")
-                            return None, "Gemini API access denied (403). Check API key permissions."
-                        # 400 could be model not found
-                        if "model" in body and ("not found" in body or "does not exist" in body):
-                            logger.warning(f"Gemini model not found: {self.model}")
-                            return None, f"Gemini model '{self.model}' not found. Check GEMINI_MODEL in .env"
-                        return None, f"Gemini API error ({resp.status_code}): {resp.text[:200]}"
-                    elif resp.status_code == 429:
-                        if attempt < self.max_retries:
-                            time.sleep(backoff)
-                            backoff *= 2
-                            continue
-                        logger.warning("Gemini rate limit reached (HTTP 429).")
-                        return None, "Gemini rate limit reached (429). Please try again shortly."
-                    elif resp.status_code in (500, 502, 503, 504) and attempt < self.max_retries:
-                        time.sleep(backoff)
-                        backoff *= 2
-                        continue
-                    else:
-                        return None, f"Gemini API Error ({resp.status_code}): {resp.text[:200]}"
-            except httpx.TimeoutException:
-                if attempt < self.max_retries:
-                    time.sleep(backoff)
-                    backoff *= 2
-                    continue
-                return None, "Request timed out"
-            except Exception as e:
-                if attempt < self.max_retries:
-                    time.sleep(backoff)
-                    backoff *= 2
-                    continue
-                return None, f"Network or execution error: {type(e).__name__}"
-
-        return None, "Max retries exceeded"
 
     # ------------------------------------------------------------------
     # 1. AI TUTOR CONVERSATION
@@ -275,17 +168,44 @@ class GeminiService:
         action: Optional[str] = None
     ) -> TutorChatResponse:
         """
-        Conducts an interactive, multi-turn tutoring session across any subject/topic.
-        Supports quick-action modifiers (simplify, analogy, worked_example, practice_question, summary).
+        Conducts an interactive, multi-turn tutoring session across any subject/topic using Google Gemini.
+        Preserves dialogue history and supports quick pedagogical modifiers.
         """
+        if not self.is_configured():
+            return TutorChatResponse(
+                response="",
+                subject=subject,
+                topic=topic,
+                level=level,
+                suggested_followups=[],
+                is_fallback=False,
+                model=self.model,
+                error="GEMINI_API_KEY is not configured in backend environment.",
+                error_code="missing_key"
+            )
+
+        client = self._get_client()
+        if not client:
+            return TutorChatResponse(
+                response="",
+                subject=subject,
+                topic=topic,
+                level=level,
+                suggested_followups=[],
+                is_fallback=False,
+                model=self.model,
+                error="Google Gemini client could not be initialized.",
+                error_code="client_error"
+            )
+
         system_prompt = (
-            f"You are LearnLens AI, an expert, supportive, and pedagogical AI tutor in {subject}.\n"
+            f"You are ThinkFlow AI, an expert, supportive, and pedagogical AI tutor in {subject}.\n"
             f"Current Topic: '{topic}' | Target Level: {level.capitalize()}.\n"
             "Pedagogical Guidelines:\n"
-            "- Explain concepts clearly, encouraging curiosity without overwhelming jargon.\n"
+            "- Explain concepts clearly, encouraging curiosity and building deep understanding.\n"
             "- Use LaTeX equations (inline with $...$ or display with $$...$$) for mathematical and scientific expressions.\n"
             "- Use clean Markdown code blocks with syntax highlighting for programming topics.\n"
-            "- If the student is confused, break down the concept into fundamental principles.\n"
+            "- If the student is confused, break down the concept into fundamental principles step by step.\n"
             "- At the end of your response, ALWAYS include exactly 3 suggested follow-up questions formatted as:\n"
             "FOLLOW_UP_SUGGESTIONS:\n"
             "1. <question 1>\n"
@@ -305,14 +225,38 @@ class GeminiService:
         elif action == "summary":
             modifier_instruction = "\nInstruction: Provide a bulleted summary of key principles and takeaways."
 
-        gemini_messages = [{"role": "system", "content": system_prompt + modifier_instruction}]
+        full_system_instruction = system_prompt + modifier_instruction
+
+        from google.genai import types
+
+        contents = []
         for m in messages:
-            gemini_messages.append({"role": m.role if m.role in ("user", "assistant") else "user", "content": m.content})
+            role = m.role if m.role in ("user", "assistant") else "user"
+            gemini_role = "model" if role == "assistant" else "user"
+            contents.append(
+                types.Content(
+                    role=gemini_role,
+                    parts=[types.Part.from_text(text=m.content)]
+                )
+            )
 
-        content, err = self._call_gemini(gemini_messages, json_mode=False)
+        if not contents:
+            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Please introduce {topic} in {subject}.")]))
 
-        if content and not err:
-            clean_resp, followups = self._extract_followups(content)
+        config = types.GenerateContentConfig(
+            system_instruction=full_system_instruction,
+            temperature=0.3,
+            max_output_tokens=self.max_tokens
+        )
+
+        try:
+            res = client.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config
+            )
+            raw_text = res.text or ""
+            clean_resp, followups = self._extract_followups(raw_text)
             return TutorChatResponse(
                 response=clean_resp,
                 subject=subject,
@@ -322,17 +266,36 @@ class GeminiService:
                 is_fallback=False,
                 model=self.model
             )
+        except Exception as e:
+            err_text = str(e)
+            err_lower = err_text.lower()
+            logger.warning(f"Gemini chat error: {type(e).__name__} - {err_text}")
 
-        # Surface real errors — never silently replace with hardcoded text
-        if self.is_configured() and err:
             err_code = "api_error"
-            err_lower = err.lower()
-            if "quota" in err_lower or "billing" in err_lower or "403" in err or "access denied" in err_lower:
-                err_code = "out_of_credits"
-            elif "401" in err or "invalid" in err_lower or "api key" in err_lower:
+            user_msg = f"Google Gemini API error: {err_text[:160]}"
+
+            if "401" in err_text or "api_key_invalid" in err_lower or "api key not valid" in err_lower:
                 err_code = "invalid_key"
-            elif "429" in err or "rate limit" in err_lower:
-                err_code = "rate_limited"
+                user_msg = "Invalid Google Gemini API Key. Please verify your API key at https://aistudio.google.com/apikey"
+            elif "404" in err_text or "not_found" in err_lower:
+                err_code = "unsupported_model"
+                user_msg = f"Gemini model '{self.model}' is not supported or not found. Please set GEMINI_MODEL in .env to a supported model (e.g. gemini-3.5-flash)."
+            elif "403" in err_text or "permission_denied" in err_lower:
+                err_code = "permission_denied"
+                user_msg = "Access denied by Google Gemini API. Please check your project access at https://aistudio.google.com/"
+            elif "429" in err_text or "resource_exhausted" in err_lower or "quota" in err_lower:
+                if "quota" in err_lower or "billing" in err_lower:
+                    err_code = "out_of_credits"
+                    user_msg = "Google Gemini API quota exceeded or billing not enabled. Visit https://aistudio.google.com/ to manage your quota."
+                else:
+                    err_code = "rate_limited"
+                    user_msg = "Google Gemini rate limit reached. Please wait a moment and try again."
+            elif "safety" in err_lower:
+                err_code = "safety_blocked"
+                user_msg = "The response was blocked by Google Gemini safety filters. Please rephrase your question."
+            elif "timeout" in err_lower:
+                err_code = "timeout"
+                user_msg = "Google Gemini API request timed out. Please try again."
 
             return TutorChatResponse(
                 response="",
@@ -342,13 +305,9 @@ class GeminiService:
                 suggested_followups=[],
                 is_fallback=False,
                 model=self.model,
-                error=err,
+                error=user_msg,
                 error_code=err_code
             )
-
-        # Deterministic fallback (only when GEMINI_API_KEY is not configured)
-        from app.services.grok_service import grok_service
-        return grok_service._fallback_tutor_response(subject, topic, level, action, messages)
 
     def _extract_followups(self, text: str) -> Tuple[str, List[str]]:
         marker = "FOLLOW_UP_SUGGESTIONS:"
@@ -380,10 +339,18 @@ class GeminiService:
         difficulty_areas: Optional[List[str]] = None,
         student_id: Optional[str] = "student_alex"
     ) -> DynamicLesson:
-        """Generates a comprehensive, pedagogical lesson."""
+        """Generates a comprehensive, pedagogical lesson using Google Gemini."""
         obj_text = learning_objective or f"Master foundational and applied concepts of {topic}"
+
+        if not self.is_configured():
+            return self._fallback_lesson(subject, topic, level, obj_text, student_id)
+
+        client = self._get_client()
+        if not client:
+            return self._fallback_lesson(subject, topic, level, obj_text, student_id)
+
         system_instruction = (
-            "You are a master curriculum designer and author for Thinkflow / LearnLens AI. "
+            "You are a master curriculum designer and author for ThinkFlow. "
             "Generate a structured, high-impact lesson in valid JSON matching the exact schema below.\n"
             "JSON SCHEMA:\n"
             "{\n"
@@ -412,39 +379,44 @@ class GeminiService:
             f"Areas of Difficulty: {', '.join(difficulty_areas) if difficulty_areas else 'None noted'}"
         )
 
-        content, err = self._call_gemini([
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": user_prompt}
-        ], json_mode=True)
-
-        if content and not err:
-            try:
-                cleaned = content.strip().replace("```json", "").replace("```", "").strip()
-                data = json.loads(cleaned)
-                lesson_id = f"lesson_{subject.lower()[:3]}_{topic.lower().replace(' ', '_')[:16]}_{int(time.time())}"
-                return DynamicLesson(
-                    id=lesson_id,
-                    student_id=student_id,
-                    subject=subject,
-                    topic=topic,
-                    level=level,
-                    learning_objectives=data.get("learning_objectives", [obj_text]),
-                    prerequisites=data.get("prerequisites", [f"Basic {subject} fundamentals"]),
-                    core_explanation=data.get("core_explanation", f"In-depth analysis of {topic}."),
-                    step_by_step_examples=data.get("step_by_step_examples", []),
-                    common_mistakes_and_misconceptions=data.get("common_mistakes_and_misconceptions", []),
-                    practice_questions=data.get("practice_questions", []),
-                    short_summary=data.get("short_summary", f"Key principles of {topic} reviewed."),
-                    suggested_next_steps=data.get("suggested_next_steps", ["Attempt the diagnostic assessment"]),
-                    review_status=ContentReviewStatus.APPROVED,
-                    created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                    is_fallback=False
-                )
-            except Exception as e:
-                logger.warning(f"Error parsing Gemini lesson JSON: {e}. Falling back.")
-
-        from app.services.grok_service import grok_service
-        return grok_service._fallback_lesson(subject, topic, level, obj_text, student_id)
+        try:
+            from google.genai import types
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                temperature=0.2,
+                max_output_tokens=self.max_tokens
+            )
+            res = client.models.generate_content(
+                model=self.model,
+                contents=user_prompt,
+                config=config
+            )
+            raw = (res.text or "").strip()
+            cleaned = raw.replace("```json", "").replace("```", "").strip()
+            data = json.loads(cleaned)
+            lesson_id = f"lesson_{subject.lower()[:3]}_{topic.lower().replace(' ', '_')[:16]}_{int(time.time())}"
+            return DynamicLesson(
+                id=lesson_id,
+                student_id=student_id,
+                subject=subject,
+                topic=topic,
+                level=level,
+                learning_objectives=data.get("learning_objectives", [obj_text]),
+                prerequisites=data.get("prerequisites", [f"Basic {subject} fundamentals"]),
+                core_explanation=data.get("core_explanation", f"In-depth analysis of {topic}."),
+                step_by_step_examples=data.get("step_by_step_examples", []),
+                common_mistakes_and_misconceptions=data.get("common_mistakes_and_misconceptions", []),
+                practice_questions=data.get("practice_questions", []),
+                short_summary=data.get("short_summary", f"Key principles of {topic} reviewed."),
+                suggested_next_steps=data.get("suggested_next_steps", ["Attempt the diagnostic assessment"]),
+                review_status=ContentReviewStatus.APPROVED,
+                created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                is_fallback=False
+            )
+        except Exception as e:
+            logger.warning(f"Error generating Gemini lesson: {e}. Using deterministic curriculum structure.")
+            return self._fallback_lesson(subject, topic, level, obj_text, student_id)
 
     # ------------------------------------------------------------------
     # 3. DYNAMIC ASSESSMENT GENERATION
@@ -457,9 +429,16 @@ class GeminiService:
         question_count: int = 3,
         question_type: str = "multiple_choice"
     ) -> List[Question]:
-        """Generates validated assessment questions."""
+        """Generates validated assessment questions using Google Gemini."""
+        if not self.is_configured():
+            return self._fallback_questions(subject, topic, difficulty, question_count)
+
+        client = self._get_client()
+        if not client:
+            return self._fallback_questions(subject, topic, difficulty, question_count)
+
         system_instruction = (
-            "You are a rigorous educational psychometrics item writer for Thinkflow. "
+            "You are a rigorous educational psychometrics item writer for ThinkFlow. "
             "Output ONLY valid JSON containing a list of multiple choice questions matching this schema:\n"
             "[\n"
             "  {\n"
@@ -482,52 +461,58 @@ class GeminiService:
             "Include plausible distractors that diagnose common conceptual mistakes."
         )
 
-        content, err = self._call_gemini([
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": user_prompt}
-        ], json_mode=True)
+        try:
+            from google.genai import types
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                temperature=0.2,
+                max_output_tokens=self.max_tokens
+            )
+            res = client.models.generate_content(
+                model=self.model,
+                contents=user_prompt,
+                config=config
+            )
+            raw = (res.text or "").strip()
+            cleaned = raw.replace("```json", "").replace("```", "").strip()
+            data = json.loads(cleaned)
+            if isinstance(data, dict) and "questions" in data:
+                data = data["questions"]
+            if isinstance(data, list) and len(data) > 0:
+                verified_questions = []
+                for i, item in enumerate(data):
+                    correct = str(item.get("correct_answer", "")).strip()
+                    opts = item.get("options", [])
+                    opt_texts = [str(o.get("text", "")).strip().lower() for o in opts]
+                    if correct and len(opts) >= 2 and correct.lower() in opt_texts:
+                        q_id = item.get("id") or f"dyn_{topic.lower().replace(' ', '_')[:10]}_{int(time.time())}_{i}"
+                        verified_questions.append(Question(
+                            id=q_id,
+                            concept_id=f"topic_{topic.lower().replace(' ', '_')}",
+                            prompt=item["prompt"],
+                            question_type="multiple_choice",
+                            options=[
+                                QuestionOption(
+                                    id=o.get("id", f"opt_{j}"),
+                                    text=o["text"],
+                                    misconception_id=o.get("misconception_id"),
+                                    misconception_explanation=o.get("misconception_explanation")
+                                ) for j, o in enumerate(opts)
+                            ],
+                            correct_answer=correct,
+                            worked_solution=item.get("worked_solution", ["Evaluate rules step by step."]),
+                            difficulty=difficulty,
+                            source="generated",
+                            review_status=ContentReviewStatus.APPROVED,
+                            validation_status=ValidationStatus.VALID
+                        ))
+                if len(verified_questions) >= 1:
+                    return verified_questions[:question_count]
+        except Exception as e:
+            logger.warning(f"Error generating Gemini questions: {e}. Using deterministic curriculum questions.")
 
-        if content and not err:
-            try:
-                cleaned = content.strip().replace("```json", "").replace("```", "").strip()
-                data = json.loads(cleaned)
-                if isinstance(data, dict) and "questions" in data:
-                    data = data["questions"]
-                if isinstance(data, list) and len(data) > 0:
-                    verified_questions = []
-                    for i, item in enumerate(data):
-                        correct = str(item.get("correct_answer", "")).strip()
-                        opts = item.get("options", [])
-                        opt_texts = [str(o.get("text", "")).strip().lower() for o in opts]
-                        if correct and len(opts) >= 2 and correct.lower() in opt_texts:
-                            q_id = item.get("id") or f"dyn_{topic.lower().replace(' ', '_')[:10]}_{int(time.time())}_{i}"
-                            verified_questions.append(Question(
-                                id=q_id,
-                                concept_id=f"topic_{topic.lower().replace(' ', '_')}",
-                                prompt=item["prompt"],
-                                question_type="multiple_choice",
-                                options=[
-                                    QuestionOption(
-                                        id=o.get("id", f"opt_{j}"),
-                                        text=o["text"],
-                                        misconception_id=o.get("misconception_id"),
-                                        misconception_explanation=o.get("misconception_explanation")
-                                    ) for j, o in enumerate(opts)
-                                ],
-                                correct_answer=correct,
-                                worked_solution=item.get("worked_solution", ["Evaluate rules step by step."]),
-                                difficulty=difficulty,
-                                source="generated",
-                                review_status=ContentReviewStatus.APPROVED,
-                                validation_status=ValidationStatus.VALID
-                            ))
-                    if len(verified_questions) >= 1:
-                        return verified_questions[:question_count]
-            except Exception as e:
-                logger.warning(f"Error parsing Gemini questions: {e}. Falling back.")
-
-        from app.services.grok_service import grok_service
-        return grok_service._fallback_questions(subject, topic, difficulty, question_count)
+        return self._fallback_questions(subject, topic, difficulty, question_count)
 
     # ------------------------------------------------------------------
     # 4. GENERALIZED MISCONCEPTION DETECTION
@@ -541,7 +526,7 @@ class GeminiService:
         subject: str = "Mathematics",
         concept_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Analyzes student response against the controlled error taxonomy."""
+        """Analyzes student response against the controlled error taxonomy using Google Gemini."""
         clean_stud = (student_answer or "").strip()
         clean_corr = (correct_answer or "").strip()
 
@@ -558,93 +543,193 @@ class GeminiService:
         # Rule 2: Near-miss typo check
         if len(clean_stud) >= 2 and len(clean_corr) >= 2:
             is_typo = False
-            s1, s2 = clean_stud.lower(), clean_corr.lower()
-            if abs(len(s1) - len(s2)) <= 1:
-                if len(s1) == len(s2):
-                    diffs = [i for i in range(len(s1)) if s1[i] != s2[i]]
-                    if len(diffs) == 1:
-                        is_typo = True
-                    elif len(diffs) == 2 and diffs[1] == diffs[0] + 1 and s1[diffs[0]] == s2[diffs[1]] and s1[diffs[1]] == s2[diffs[0]]:
-                        is_typo = True
-                else:
-                    longer, shorter = (s1, s2) if len(s1) > len(s2) else (s2, s1)
-                    for i in range(len(longer)):
-                        if longer[:i] + longer[i+1:] == shorter:
-                            is_typo = True
-                            break
+            diff_count = sum(1 for a, b in zip(clean_stud, clean_corr) if a != b) + abs(len(clean_stud) - len(clean_corr))
+            if diff_count == 1 and not clean_stud.isdigit():
+                is_typo = True
             if is_typo:
                 return {
-                    "category": ErrorTaxonomyCategory.POSSIBLE_TYPO,
-                    "misconception_id": "single_char_slip",
+                    "category": ErrorTaxonomyCategory.TRANSCRIPTION_TYPO,
+                    "misconception_id": None,
                     "confidence": 0.85,
-                    "evidence": f"Answer '{clean_stud}' differs by a single character or transposition from '{clean_corr}'.",
-                    "remediation_hint": f"Double check your typing! You wrote '{clean_stud}', which looks like a simple slip for '{clean_corr}'."
+                    "evidence": f"Input '{clean_stud}' deviates from expected '{clean_corr}' by only a single transposed/omitted character.",
+                    "remediation_hint": "Check for typos or misplaced symbols."
                 }
 
-        # Attempt Gemini generalized analysis
-        if self.is_configured():
-            system_prompt = (
-                "You are an expert cognitive learning diagnostician. "
-                "Classify the student's error according to this strict taxonomy:\n"
-                "- arithmetic_or_sign_error\n"
-                "- concept_misunderstanding\n"
-                "- formula_confusion\n"
-                "- prerequisite_gap\n"
-                "- question_misread\n"
-                "- possible_typo\n"
-                "- insufficient_evidence\n\n"
-                "Return valid JSON:\n"
-                "{\n"
-                '  "category": "one of the taxonomy options above",\n'
-                '  "misconception_id": "short_snake_case_name",\n'
-                '  "confidence": float_between_0_and_1,\n'
-                '  "evidence": "concise factual explanation",\n'
-                '  "remediation_hint": "encouraging actionable student hint"\n'
-                "}"
+        if not self.is_configured():
+            return self._fallback_misconception_analysis(problem, clean_stud, clean_corr, subject)
+
+        client = self._get_client()
+        if not client:
+            return self._fallback_misconception_analysis(problem, clean_stud, clean_corr, subject)
+
+        system_instruction = (
+            "You are a rigorous diagnostic psychometrics evaluator in STEM pedagogy for ThinkFlow.\n"
+            "Analyze student mistakes against this controlled error taxonomy:\n"
+            "- concept_misunderstanding\n"
+            "- formula_confusion\n"
+            "- step_execution_breakdown\n"
+            "- arithmetic_or_sign_error\n"
+            "- transcription_typo\n"
+            "- insufficient_evidence\n\n"
+            "Output JSON with keys: category, misconception_id, confidence, evidence, remediation_hint."
+        )
+        user_prompt = (
+            f"Subject: {subject}\n"
+            f"Problem: {problem}\n"
+            f"Expected Answer: {clean_corr}\n"
+            f"Student Answer: {clean_stud}\n"
+            f"Student Reasoning: {reasoning or 'None supplied'}\n"
+        )
+
+        try:
+            from google.genai import types
+            config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                temperature=0.1,
+                max_output_tokens=600
             )
-            user_prompt = (
-                f"Subject: {subject}\n"
-                f"Problem: {problem}\n"
-                f"Correct Answer: {correct_answer}\n"
-                f"Student Answer: {student_answer}\n"
-                f"Student Reasoning: {reasoning or 'None provided'}"
+            res = client.models.generate_content(
+                model=self.model,
+                contents=user_prompt,
+                config=config
             )
-            content, err = self._call_gemini([
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ], json_mode=True)
+            raw = (res.text or "").strip()
+            cleaned = raw.replace("```json", "").replace("```", "").strip()
+            data = json.loads(cleaned)
 
-            if content and not err:
-                try:
-                    data = json.loads(content.strip().replace("```json", "").replace("```", ""))
-                    conf = float(data.get("confidence", 0.5))
+            conf = float(data.get("confidence", 0.5))
+            if conf < 0.60:
+                return {
+                    "category": ErrorTaxonomyCategory.INSUFFICIENT_EVIDENCE,
+                    "misconception_id": None,
+                    "confidence": conf,
+                    "evidence": f"Low diagnostic certainty ({conf:.2f}); abstaining from diagnosing misconception.",
+                    "remediation_hint": "Review the problem statement and verify each step."
+                }
 
-                    if conf < 0.60:
-                        return {
-                            "category": ErrorTaxonomyCategory.INSUFFICIENT_EVIDENCE,
-                            "misconception_id": None,
-                            "confidence": conf,
-                            "evidence": f"Low diagnostic certainty ({conf:.2f}); abstaining from diagnosing misconception.",
-                            "remediation_hint": "Review the problem statement and verify each step."
-                        }
+            valid_categories = {c.value: c for c in ErrorTaxonomyCategory}
+            cat_str = str(data.get("category", "")).lower()
+            final_cat = valid_categories.get(cat_str, ErrorTaxonomyCategory.CONCEPT_MISUNDERSTANDING)
 
-                    valid_categories = {c.value: c for c in ErrorTaxonomyCategory}
-                    cat_str = str(data.get("category", "")).lower()
-                    final_cat = valid_categories.get(cat_str, ErrorTaxonomyCategory.CONCEPT_MISUNDERSTANDING)
+            return {
+                "category": final_cat,
+                "misconception_id": data.get("misconception_id"),
+                "confidence": conf,
+                "evidence": data.get("evidence", "Identified based on answer discrepancy pattern."),
+                "remediation_hint": data.get("remediation_hint", "Review the governing rules for this operation.")
+            }
+        except Exception as e:
+            logger.warning(f"Error parsing Gemini misconception evaluation: {e}")
 
-                    return {
-                        "category": final_cat,
-                        "misconception_id": data.get("misconception_id"),
-                        "confidence": conf,
-                        "evidence": data.get("evidence", "Identified based on answer discrepancy pattern."),
-                        "remediation_hint": data.get("remediation_hint", "Review the governing rules for this operation.")
-                    }
-                except Exception as e:
-                    logger.warning(f"Error parsing Gemini misconception evaluation: {e}")
+        return self._fallback_misconception_analysis(problem, clean_stud, clean_corr, subject)
 
-        # Deterministic fallback
-        from app.services.grok_service import grok_service
-        return grok_service._fallback_misconception_analysis(problem, clean_stud, clean_corr, subject)
+    # ------------------------------------------------------------------
+    # Deterministic Local Fallbacks (Used only if offline / no API key)
+    # ------------------------------------------------------------------
+    def _fallback_lesson(self, subject: str, topic: str, level: str, obj_text: str, student_id: Optional[str]) -> DynamicLesson:
+        lesson_id = f"lesson_{subject.lower()[:3]}_{topic.lower().replace(' ', '_')[:16]}_{int(time.time())}"
+        return DynamicLesson(
+            id=lesson_id,
+            student_id=student_id or "student_alex",
+            subject=subject,
+            topic=topic,
+            level=level,
+            learning_objectives=[obj_text, f"Identify and eliminate misconceptions in {topic}"],
+            prerequisites=[f"Basic arithmetic & {subject} foundational knowledge"],
+            core_explanation=(
+                f"### Understanding {topic}\n\n"
+                f"When working with **{topic}** in {subject}, the key principle is establishing consistent conceptual foundations. "
+                f"Break the problem down step by step and verify each operation before proceeding."
+            ),
+            step_by_step_examples=[
+                {
+                    "title": f"Standard Application of {topic}",
+                    "steps": [
+                        "Step 1: Read the problem carefully and identify the given variables.",
+                        "Step 2: Apply the governing formula or rule directly.",
+                        "Step 3: Simplify and verify units or boundary conditions."
+                    ],
+                    "takeaway": "Always verify intermediate steps before concluding."
+                }
+            ],
+            common_mistakes_and_misconceptions=[
+                {
+                    "mistake": "Rushing through intermediate operations without checking signs/units",
+                    "why_it_happens": "Focusing solely on the final answer rather than rigorous step derivation.",
+                    "how_to_fix": "Write out each algebraic or arithmetic transformation explicitly."
+                }
+            ],
+            practice_questions=[
+                {
+                    "prompt": f"Apply the foundational rule of {topic} to a basic test case.",
+                    "hint": "Refer to the step-by-step example above.",
+                    "solution": "Follow each step methodically to reach the verified solution."
+                }
+            ],
+            short_summary=f"Core principles of {topic} reviewed with step-by-step guidance.",
+            suggested_next_steps=["Take the diagnostic assessment", "Review related prerequisite topics"],
+            review_status=ContentReviewStatus.APPROVED,
+            created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            is_fallback=True
+        )
+
+    def _fallback_questions(self, subject: str, topic: str, difficulty: float, question_count: int) -> List[Question]:
+        ts = int(time.time())
+        q1 = Question(
+            id=f"fb_dyn_{topic.lower().replace(' ', '_')[:10]}_{ts}_1",
+            concept_id=f"topic_{topic.lower().replace(' ', '_')}",
+            prompt=f"Diagnostic Check: In the study of {topic}, which principle is universally valid?",
+            question_type="multiple_choice",
+            options=[
+                QuestionOption(id="o1", text="Equivalence and invariant conservation must be preserved across transformations.", misconception_id=None),
+                QuestionOption(id="o2", text="Operations can be performed arbitrarily on one side without balancing.", misconception_id="sign_flip_omission", misconception_explanation="Violates invariant balance."),
+                QuestionOption(id="o3", text="Units and variable coefficients can be ignored during substitution.", misconception_id="unlike_terms_merging", misconception_explanation="Incompatible dimensions cannot be merged."),
+                QuestionOption(id="o4", text="All formulas apply equally regardless of boundary constraints.", misconception_id=None)
+            ],
+            correct_answer="Equivalence and invariant conservation must be preserved across transformations.",
+            worked_solution=[
+                f"1. Foundations of {topic} require strict conservation of balance.",
+                "2. Any transformation applied to one side must be maintained on the other.",
+                "3. Therefore, equivalence and invariant conservation are universally valid."
+            ],
+            difficulty=difficulty,
+            source="curated",
+            review_status=ContentReviewStatus.APPROVED,
+            validation_status=ValidationStatus.VALID
+        )
+        q2 = Question(
+            id=f"fb_dyn_{topic.lower().replace(' ', '_')[:10]}_{ts}_2",
+            concept_id=f"topic_{topic.lower().replace(' ', '_')}",
+            prompt=f"When encountering an edge case in {topic}, what is the correct diagnostic procedure?",
+            question_type="multiple_choice",
+            options=[
+                QuestionOption(id="o1", text="Verify prerequisites and test against boundary values.", misconception_id=None),
+                QuestionOption(id="o2", text="Force the standard formula without verifying domain limits.", misconception_id="formula_confusion", misconception_explanation="Formulas must have their prerequisites checked."),
+                QuestionOption(id="o3", text="Skip the validation step if the initial answer looks plausible.", misconception_id=None),
+                QuestionOption(id="o4", text="Assume that rounding errors cancel out boundary violations.", misconception_id=None)
+            ],
+            correct_answer="Verify prerequisites and test against boundary values.",
+            worked_solution=[
+                "1. Identify the domain of applicability for the current principle.",
+                "2. Substitute boundary values to ensure stability.",
+                "3. Verification against boundary constraints prevents false positives."
+            ],
+            difficulty=difficulty,
+            source="curated",
+            review_status=ContentReviewStatus.APPROVED,
+            validation_status=ValidationStatus.VALID
+        )
+        return [q1, q2][:question_count]
+
+    def _fallback_misconception_analysis(self, problem: str, student_answer: str, correct_answer: str, subject: str) -> Dict[str, Any]:
+        return {
+            "category": ErrorTaxonomyCategory.CONCEPT_MISUNDERSTANDING,
+            "misconception_id": "general_misconception",
+            "confidence": 0.70,
+            "evidence": f"Student response '{student_answer}' differs from expected '{correct_answer}'.",
+            "remediation_hint": "Review the core definition and recompute using standard properties."
+        }
 
 
 gemini_service = GeminiService()

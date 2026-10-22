@@ -374,7 +374,7 @@ export interface TopicCatalogItem {
 
 export const api = {
 
-  // Grok AI Provider & Dynamic Learning Methods
+  // Google Gemini AI Provider & Dynamic Learning Methods
   getAIHealth: async (): Promise<AIHealthStatus> => {
     try {
       const res = await fetch(`${API_BASE}/ai/health`);
@@ -383,8 +383,8 @@ export const api = {
     } catch {
       return {
         status: 'offline_fallback',
-        provider: 'xAI Grok',
-        model: 'grok-2-latest',
+        provider: 'Google Gemini',
+        model: 'gemini-3.5-flash',
         is_configured: false,
         is_fallback: true,
         message: 'Offline fallback active (backend connection unavailable).'
@@ -408,7 +408,13 @@ export const api = {
       } catch {}
       const err: any = new Error(detail);
       err.status = res.status;
-      err.code = res.status === 403 ? 'out_of_credits' : (res.status === 401 ? 'invalid_key' : 'api_error');
+      err.code = res.status === 401
+        ? 'invalid_key'
+        : (res.status === 403
+          ? 'permission_denied'
+          : (res.status === 429
+            ? (detail.toLowerCase().includes('quota') ? 'out_of_credits' : 'rate_limited')
+            : (res.status === 404 ? 'unsupported_model' : 'api_error')));
       throw err;
     }
     return res.json();

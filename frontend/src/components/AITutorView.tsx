@@ -96,7 +96,7 @@ export function AITutorView() {
         {
           id: 'welcome',
           role: 'assistant',
-          content: `Welcome to **ThinkFlow AI**! I am your personal AI learning coach powered by xAI Grok.\n\nAsk me any question in plain language — from computer science and physics to calculus and chemistry. I provide step-by-step reasoning, intuitive analogies, and worked solutions.`,
+          content: `Welcome to **ThinkFlow AI**! I am your personal AI learning coach powered by Google Gemini.\n\nAsk me any question in plain language — from computer science and physics to calculus and chemistry. I provide step-by-step reasoning, intuitive analogies, and worked solutions.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -174,34 +174,39 @@ export function AITutorView() {
       setProviderError(null);
       setLastPendingRequest(null);
     } catch (err: any) {
-      const isOutOfCredits =
-        err?.status === 403 ||
-        err?.code === 'out_of_credits' ||
-        (err?.message && (err.message.includes('credits') || err.message.includes('403') || err.message.includes('permission-denied')));
+      const errDetail = err?.message || 'Google Gemini service encountered an error.';
+      const status = err?.status;
+      const code = err?.code;
 
-      if (isOutOfCredits) {
-        setProviderError({
-          code: 'out_of_credits',
-          heading: 'Grok API access unavailable',
-          message: 'Your xAI team needs active API credits or the required API access to generate responses.'
-        });
-      } else if (err?.status === 401 || err?.code === 'invalid_key') {
+      if (status === 401 || code === 'invalid_key') {
         setProviderError({
           code: 'invalid_key',
-          heading: 'Invalid xAI API Key',
-          message: 'Please check your API key credentials in the xAI Console.'
+          heading: 'Invalid Google Gemini API Key',
+          message: errDetail || 'Your Google Gemini API key was rejected. Please verify your credentials at Google AI Studio.'
         });
-      } else if (err?.status === 429 || err?.code === 'rate_limited') {
+      } else if (status === 429 || code === 'out_of_credits' || errDetail.toLowerCase().includes('quota')) {
         setProviderError({
-          code: 'rate_limited',
-          heading: 'Rate Limit Reached',
-          message: 'xAI Grok rate limit reached. Please wait a moment and try again.'
+          code: 'out_of_credits',
+          heading: 'Google Gemini Quota Exceeded',
+          message: errDetail || 'Google Gemini API quota exceeded or billing not enabled. Manage your quota in Google AI Studio.'
+        });
+      } else if (status === 403 || code === 'permission_denied') {
+        setProviderError({
+          code: 'error',
+          heading: 'Google Gemini Access Denied',
+          message: errDetail || 'Access denied by Google Gemini API. Please check your project access in Google AI Studio.'
+        });
+      } else if (status === 404 || code === 'unsupported_model') {
+        setProviderError({
+          code: 'error',
+          heading: 'Gemini Model Unavailable',
+          message: errDetail || 'The configured Gemini model is not supported or not found.'
         });
       } else {
         setProviderError({
           code: 'error',
-          heading: 'Grok API access unavailable',
-          message: 'Your xAI team needs active API credits or the required API access to generate responses.'
+          heading: 'Google Gemini Error',
+          message: errDetail || 'An error occurred while contacting Google Gemini.'
         });
       }
     } finally {
@@ -228,22 +233,39 @@ export function AITutorView() {
       setProviderError(null);
       setLastPendingRequest(null);
     } catch (err: any) {
-      const isOutOfCredits =
-        err?.status === 403 ||
-        err?.code === 'out_of_credits' ||
-        (err?.message && (err.message.includes('credits') || err.message.includes('403') || err.message.includes('permission-denied')));
+      const errDetail = err?.message || 'Google Gemini service encountered an error.';
+      const status = err?.status;
+      const code = err?.code;
 
-      if (isOutOfCredits) {
+      if (status === 401 || code === 'invalid_key') {
+        setProviderError({
+          code: 'invalid_key',
+          heading: 'Invalid Google Gemini API Key',
+          message: errDetail || 'Your Google Gemini API key was rejected. Please verify your credentials at Google AI Studio.'
+        });
+      } else if (status === 429 || code === 'out_of_credits' || errDetail.toLowerCase().includes('quota')) {
         setProviderError({
           code: 'out_of_credits',
-          heading: 'Grok API access unavailable',
-          message: 'Your xAI team needs active API credits or the required API access to generate responses.'
+          heading: 'Google Gemini Quota Exceeded',
+          message: errDetail || 'Google Gemini API quota exceeded or billing not enabled. Manage your quota in Google AI Studio.'
+        });
+      } else if (status === 403 || code === 'permission_denied') {
+        setProviderError({
+          code: 'error',
+          heading: 'Google Gemini Access Denied',
+          message: errDetail || 'Access denied by Google Gemini API. Please check your project access in Google AI Studio.'
+        });
+      } else if (status === 404 || code === 'unsupported_model') {
+        setProviderError({
+          code: 'error',
+          heading: 'Gemini Model Unavailable',
+          message: errDetail || 'The configured Gemini model is not supported or not found.'
         });
       } else {
         setProviderError({
           code: 'error',
-          heading: 'Grok API access unavailable',
-          message: 'Your xAI team needs active API credits or the required API access to generate responses.'
+          heading: 'Google Gemini Error',
+          message: errDetail || 'An error occurred while contacting Google Gemini.'
         });
       }
     } finally {
@@ -291,7 +313,7 @@ export function AITutorView() {
       {/* ------------------------------------------------------------- */}
       {/* 1. HERO QUESTION INPUT CARD: "What would you like to learn?"  */}
       {/* ------------------------------------------------------------- */}
-      <section className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl relative overflow-hidden">
+      <section className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl relative overflow-hidden">
         {/* Subtle decorative glow */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
 
@@ -306,8 +328,8 @@ export function AITutorView() {
                 <span className="text-xs font-bold uppercase tracking-wider text-teal-400">
                   ThinkFlow AI Learning Assistant
                 </span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
-                  {healthStatus?.model || 'grok-2-latest'}
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-black/40 text-white/80 border border-white/10 font-mono backdrop-blur-md">
+                  {healthStatus?.model || 'gemini-3.5-flash'}
                 </span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -319,7 +341,7 @@ export function AITutorView() {
             </div>
 
             {/* Subject Domain & Instruction Level Controls */}
-            <div className="flex flex-wrap items-center gap-2.5 bg-slate-950 p-2 rounded-2xl border border-slate-800 self-start md:self-auto">
+            <div className="flex flex-wrap items-center gap-2.5 bg-black/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md self-start md:self-auto">
               <select
                 value={subject}
                 onChange={(e) => {
@@ -327,16 +349,16 @@ export function AITutorView() {
                   const opt = SUBJECT_OPTIONS.find((o) => o.id === e.target.value);
                   if (opt) setTopic(opt.defaultTopic);
                 }}
-                className="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-teal-400 backdrop-blur-md"
               >
                 {SUBJECT_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
+                  <option key={opt.id} value={opt.id} className="bg-[#18110c] text-white">
                     {opt.icon} {opt.label}
                   </option>
                 ))}
               </select>
 
-              <div className="flex items-center bg-slate-900 rounded-xl p-0.5 border border-slate-700/80 text-xs">
+              <div className="flex items-center bg-black/40 rounded-xl p-0.5 border border-white/10 text-xs backdrop-blur-md">
                 {(['beginner', 'intermediate', 'advanced'] as const).map((lvl) => (
                   <button
                     key={lvl}
@@ -345,7 +367,7 @@ export function AITutorView() {
                     className={`px-2.5 py-1 rounded-lg capitalize transition font-medium ${
                       level === lvl
                         ? 'bg-teal-500 text-slate-950 font-bold shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        : 'text-white/60 hover:text-white'
                     }`}
                   >
                     {lvl}
@@ -366,7 +388,7 @@ export function AITutorView() {
                   key={idx}
                   type="button"
                   onClick={() => handleSelectExample(item.prompt)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-950/80 hover:bg-teal-500/10 border border-slate-800 hover:border-teal-500/40 text-xs text-slate-300 hover:text-teal-300 transition-all text-left flex items-center space-x-1.5 group shadow-sm"
+                  className="px-3.5 py-2 rounded-xl bg-black/30 hover:bg-teal-500/10 border border-white/10 hover:border-teal-500/30 text-xs text-white/80 hover:text-teal-300 transition-all text-left flex items-center space-x-1.5 group backdrop-blur-md shadow-sm"
                 >
                   <Sparkles className="w-3 h-3 text-teal-400/60 group-hover:text-teal-400 flex-shrink-0" />
                   <span>{item.prompt}</span>
@@ -377,7 +399,7 @@ export function AITutorView() {
 
           {/* Large Multiline Textarea Input Area */}
           <div className="space-y-3">
-            <div className="relative rounded-2xl bg-slate-950 border border-slate-800 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all shadow-inner">
+            <div className="relative rounded-2xl bg-black/40 border border-white/10 focus-within:border-teal-500/60 focus-within:ring-2 focus-within:ring-teal-500/20 backdrop-blur-md transition-all shadow-inner">
               <textarea
                 ref={textareaRef}
                 value={inputText}
@@ -386,15 +408,15 @@ export function AITutorView() {
                 placeholder="Ask any question about a topic, concept, problem, or subject..."
                 rows={4}
                 disabled={isLoading}
-                className="w-full bg-transparent p-4 sm:p-5 text-sm sm:text-base text-slate-100 placeholder-slate-500 focus:outline-none resize-none leading-relaxed disabled:opacity-50"
+                className="w-full bg-transparent p-4 sm:p-5 text-sm sm:text-base text-slate-100 placeholder-white/40 focus:outline-none resize-none leading-relaxed disabled:opacity-50"
               />
 
               {/* Action Toolbar Inside Input Container */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:px-5 sm:py-3.5 border-t border-slate-900 bg-slate-950/60 rounded-b-2xl">
-                <div className="flex items-center space-x-2 text-xs text-slate-500">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:px-5 sm:py-3.5 border-t border-white/10 bg-black/30 rounded-b-2xl backdrop-blur-md">
+                <div className="flex items-center space-x-2 text-xs text-slate-400">
                   <CornerDownLeft className="w-3.5 h-3.5 text-slate-400" />
                   <span>
-                    Press <strong className="text-slate-300">Ctrl + Enter</strong> to submit • <strong className="text-slate-300">Enter</strong> for newline
+                    Press <strong className="text-white/90">Ctrl + Enter</strong> to submit • <strong className="text-white/90">Enter</strong> for newline
                   </span>
                 </div>
 
@@ -434,7 +456,7 @@ export function AITutorView() {
 
           {/* Quick Modifier Action Pills */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-1">
               Actions:
             </span>
             {QUICK_ACTIONS.map((action) => (
@@ -444,7 +466,7 @@ export function AITutorView() {
                 disabled={isLoading}
                 title={action.tooltip}
                 onClick={() => handleSendMessage(undefined, action.id)}
-                className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 hover:text-white transition whitespace-nowrap disabled:opacity-40 shadow-sm"
+                className="px-3 py-1.5 rounded-xl bg-black/30 hover:bg-white/10 border border-white/10 hover:border-white/20 text-xs text-white/80 hover:text-white transition whitespace-nowrap disabled:opacity-40 backdrop-blur-md shadow-sm"
               >
                 {action.label}
               </button>
@@ -460,7 +482,7 @@ export function AITutorView() {
         <aside
           role="alert"
           aria-live="polite"
-          className="rounded-2xl border border-amber-500/30 bg-amber-950/20 px-4 py-3.5 sm:px-5 sm:py-4 shadow-lg backdrop-blur-sm transition-all"
+          className="rounded-2xl border border-amber-500/30 bg-black/40 px-4 py-3.5 sm:px-5 sm:py-4 shadow-lg backdrop-blur-xl transition-all"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Icon + Title + Explanation */}
@@ -478,15 +500,15 @@ export function AITutorView() {
               </div>
             </div>
 
-            {/* Action Buttons: Open xAI Console + Retry */}
+            {/* Action Buttons: Open Google AI Studio + Retry */}
             <div className="flex items-center gap-2 sm:self-center pl-11 sm:pl-0 flex-shrink-0">
               <a
-                href="https://console.x.ai/"
+                href="https://aistudio.google.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/30 text-xs font-semibold transition hover:border-amber-400/50 shadow-sm"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-black/40 hover:bg-white/10 text-amber-300 border border-amber-500/30 text-xs font-semibold transition hover:border-amber-400/50 backdrop-blur-md shadow-sm"
               >
-                <span>Open xAI Console</span>
+                <span>Open Google AI Studio</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
 
@@ -507,12 +529,12 @@ export function AITutorView() {
       {/* ------------------------------------------------------------- */}
       {/* 3. CONVERSATION THREAD (Generous Spacing & Visual Hierarchy)  */}
       {/* ------------------------------------------------------------- */}
-      <section className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+      <section className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div className="flex items-center space-x-2">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <span>Learning Conversation</span>
-              <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-black/40 text-white/80 border border-white/10 backdrop-blur-md">
                 {messages.length} message{messages.length === 1 ? '' : 's'}
               </span>
             </h3>
@@ -521,7 +543,7 @@ export function AITutorView() {
           <button
             type="button"
             onClick={handleClearSession}
-            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium transition flex items-center space-x-1.5 shadow-sm"
+            className="px-3.5 py-1.5 rounded-xl bg-black/40 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-medium transition flex items-center space-x-1.5 shadow-sm backdrop-blur-md"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Conversation</span>
@@ -549,7 +571,7 @@ export function AITutorView() {
                   className={`rounded-2xl p-5 sm:p-6 text-sm sm:text-base leading-relaxed max-w-[85%] space-y-2 shadow-lg ${
                     isUser
                       ? 'bg-teal-500 text-slate-950 font-medium rounded-br-none shadow-teal-500/10'
-                      : 'bg-slate-950 border border-slate-800 text-slate-100 rounded-bl-none'
+                      : 'bg-black/30 backdrop-blur-xl border border-white/10 text-white rounded-bl-none shadow-md'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs font-semibold opacity-70 mb-1">
@@ -563,7 +585,7 @@ export function AITutorView() {
 
                 {/* User Avatar */}
                 {isUser && (
-                  <div className="w-9 h-9 rounded-2xl bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center flex-shrink-0 shadow-md">
+                  <div className="w-9 h-9 rounded-2xl bg-black/40 text-white border border-white/10 flex items-center justify-center flex-shrink-0 shadow-md backdrop-blur-md">
                     <User className="w-5 h-5" />
                   </div>
                 )}
@@ -577,7 +599,7 @@ export function AITutorView() {
               <div className="w-9 h-9 rounded-2xl bg-teal-500/10 text-teal-400 border border-teal-500/30 flex items-center justify-center flex-shrink-0">
                 <Bot className="w-5 h-5" />
               </div>
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl rounded-bl-none p-5 text-sm text-slate-300 flex items-center space-x-3 shadow-lg">
+              <div className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl rounded-bl-none p-5 text-sm text-white/90 flex items-center space-x-3 shadow-lg">
                 <Sparkles className="w-4 h-4 text-teal-400 animate-spin" />
                 <span className="font-medium">ThinkFlow AI is reasoning through your question...</span>
               </div>
@@ -589,7 +611,7 @@ export function AITutorView() {
 
         {/* Suggested Next Questions Follow-Up Bar */}
         {followups.length > 0 && !isLoading && (
-          <div className="pt-6 border-t border-slate-800/80 space-y-3">
+          <div className="pt-6 border-t border-white/10 space-y-3">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Lightbulb className="w-4 h-4 text-amber-400" />
               <span>Explore Further (Click to Ask):</span>
@@ -600,7 +622,7 @@ export function AITutorView() {
                   key={i}
                   type="button"
                   onClick={() => handleSendMessage(f)}
-                  className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-teal-500/10 border border-slate-800 hover:border-teal-500/40 text-xs sm:text-sm text-slate-300 hover:text-teal-300 transition-all text-left shadow-sm flex items-center space-x-1.5 group"
+                  className="px-4 py-2 rounded-xl bg-black/30 hover:bg-teal-500/10 border border-white/10 hover:border-teal-500/30 text-xs sm:text-sm text-white/80 hover:text-teal-300 transition-all text-left shadow-sm flex items-center space-x-1.5 group backdrop-blur-md"
                 >
                   <ChevronRight className="w-3.5 h-3.5 text-teal-400/60 group-hover:text-teal-400 flex-shrink-0" />
                   <span>{f}</span>

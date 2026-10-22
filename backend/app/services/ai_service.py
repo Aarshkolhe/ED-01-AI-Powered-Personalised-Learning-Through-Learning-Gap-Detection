@@ -1,8 +1,8 @@
 import httpx
 """
 AI Misconception Diagnostic & Question Generator Service.
-Integrates xAI Grok as primary generative AI provider,
-with secondary support for Gemini and verified deterministic generators.
+Integrates Google Gemini as primary generative AI provider,
+with deterministic validated generators.
 Validates all AI-generated questions against schema and mathematical correctness.
 """
 
@@ -11,33 +11,16 @@ from typing import Optional, Dict, Any, List
 from app.core.config import settings
 from app.models.schemas import Question, QuestionOption
 from app.data.curriculum import CONCEPTS, MISCONCEPTIONS, SEED_QUESTIONS
-from app.services.grok_service import grok_service
+from app.services.gemini_service import gemini_service
 
 class AIService:
     def __init__(self):
-        self.grok = grok_service
+        self.gemini = gemini_service
+        self.grok = gemini_service  # backward compatibility alias
         self.client = None
 
     def is_gemini_active(self) -> bool:
-        return bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip() and not settings.GEMINI_API_KEY.startswith("your-"))
-
-    def _call_gemini(self, prompt: str) -> Optional[str]:
-        if not settings.GEMINI_API_KEY or not settings.GEMINI_API_KEY.strip() or settings.GEMINI_API_KEY.startswith("your-"):
-            return None
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY.strip()}"
-        try:
-            with httpx.Client(timeout=15.0) as client:
-                res = client.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
-                if res.status_code == 200:
-                    data = res.json()
-                    candidates = data.get("candidates", [])
-                    if candidates and "content" in candidates[0]:
-                        parts = candidates[0]["content"].get("parts", [])
-                        if parts and "text" in parts[0]:
-                            return parts[0]["text"].strip()
-        except Exception as e:
-            print(f"[AIService Gemini Fallback] {e}")
-        return None
+        return self.gemini.is_configured()
 
     def explain_error(
         self,
@@ -49,10 +32,10 @@ class AIService:
         language: str = "en",
         subject: str = "Mathematics"
     ) -> str:
-        # 1. Primary: If Grok is configured, use Grok
-        if self.grok.is_configured():
+        # 1. Primary: Use Google Gemini if configured
+        if self.gemini.is_configured():
             try:
-                analysis = self.grok.analyze_misconception_generalized(
+                analysis = self.gemini.analyze_misconception_generalized(
                     problem=problem,
                     student_answer=student_answer,
                     correct_answer=correct_answer,
@@ -62,61 +45,29 @@ class AIService:
                 if analysis.get("remediation_hint"):
                     return analysis["remediation_hint"]
             except Exception as e:
-                print(f"[AIService Grok Fallback] {e}")
+                print(f"[AIService Gemini Misconception] {e}")
 
-        # 2. Secondary: If Gemini is active
-        if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
-            try:
-                prompt = f"""
-                You are a supportive, encouraging tutor for Thinkflow.
-                Problem: {problem}
-                Correct Answer: {correct_answer}
-                Student Answer: {student_answer}
-                Suspected Misconception: {misconception or 'Conceptual or computation error'}
-                Student reasoning: {reasoning or 'None provided'}
-                Language: {language}
-
-                Provide a 2-sentence encouraging, student-friendly explanation of why their answer was incorrect and what conceptual rule they should remember.
-                Do NOT just state the answer directly. Keep it warm and actionable.
-                """
-                gemini_text = self._call_gemini(prompt)
-                if gemini_text:
-                    return gemini_text
-            except Exception as e:
-                print(f"[AIService Gemini Fallback] {e}")
-
-        # 3. High-Quality Deterministic Fallback
+        # Deterministic targeted fallback explanations
         if misconception and misconception in MISCONCEPTIONS:
-            base_hint = MISCONCEPTIONS[misconception]["remediation_hint"]
-            if language == "hi":
-                return f"आपका उत्तर गलत हुआ क्योंकि यह एक आम अवधारणात्मक भूल है। सुझाव: {base_hint}"
-            return f"Your answer of '{student_answer}' matches a common trap: {base_hint}"
-        
+            m_data = MISCONCEPTIONS[misconception]
+            if language == "hi" and "remediation_hi" in m_data:
+                return m_data["remediation_hi"]
+            return m_data.get("remediation_hint") or m_data.get("description") or "Review the governing rules for this operation."
+
         if language == "hi":
-            return f"समीक्षा: आपका उत्तर '{student_answer}' अपेक्षित उत्तर '{correct_answer}' से मेल नहीं खाता। चरणों को दोबारा जांचें।"
-        return f"Nice effort! Your answer '{student_answer}' differs from '{correct_answer}'. Review the operation step by step to identify where the balance or denominator shifted."
+            return f"आइए समीक्षा करें: सही उत्तर {correct_answer} है। आपने {student_answer} उत्तर दिया।"
+        return f"Let's review: the correct answer is {correct_answer}. You answered {student_answer}."
 
-    def generate_targeted_question(self, concept_id: str, misconception_id: str, difficulty: float = 0.5, language: str = "en") -> Question:
+    def generate_targeted_question(
+        self,
+        concept_id: str,
+        misconception_id: str,
+        difficulty: float = 0.5
+    ) -> Question:
         """
-        Generates a verified question targeting the specific misconception.
-        Validates structure and mathematical consistency.
-        Falls back to curated database questions if validation fails.
-        Guarantees concept and misconception alignment without cross-concept bleed.
+        Generates or selects a targeted question specifically engineered with a distractor
+        for the given misconception.
         """
-        # Align misconception to concept to prevent cross-concept mismatches
-        concept_misconception_rules = {
-            "fraction_addition_like": ["add_denominators"],
-            "fraction_addition_unlike": ["add_denominators", "cross_multiply_in_addition"],
-            "algebra_expressions": ["unlike_terms_merging"],
-            "linear_equations_1step": ["sign_flip_omission"],
-            "linear_equations_2step": ["sign_flip_omission"],
-        }
-        if concept_id in concept_misconception_rules:
-            allowed = concept_misconception_rules[concept_id]
-            if misconception_id not in allowed:
-                misconception_id = allowed[0]
-
-        # Deterministic high-quality questions for math misconceptions
         fallback_map: Dict[str, Question] = {
             "add_denominators": Question(
                 id=f"gen_{concept_id}_{misconception_id}_v1",
@@ -184,31 +135,30 @@ class AIService:
             )
         }
 
-        # If Grok is available, we could attempt generation and validate
-        if self.grok.is_configured():
+        # If Gemini is available, attempt dynamic generation
+        if self.gemini.is_configured():
             try:
-                grok_questions = self.grok.generate_assessment_questions(
+                gemini_questions = self.gemini.generate_assessment_questions(
                     subject="Mathematics",
                     topic=concept_id,
                     difficulty=difficulty,
                     question_count=1
                 )
-                if grok_questions:
-                    grok_q = grok_questions[0]
-                    grok_q.concept_id = concept_id
-                    return grok_q
+                if gemini_questions:
+                    gemini_q = gemini_questions[0]
+                    gemini_q.concept_id = concept_id
+                    return gemini_q
             except Exception as e:
-                print(f"[AIService Grok Generator] {e}. Using verified template.")
+                print(f"[AIService Gemini Generator] {e}. Using verified template.")
 
         # Return validated verified fallback
         if misconception_id in fallback_map:
             return fallback_map[misconception_id]
 
-        # Or return a matching seeded question from the database
         for q in SEED_QUESTIONS:
             if q.concept_id == concept_id:
                 return q
 
-        return SEED_QUESTIONS[0]
+        return fallback_map["add_denominators"]
 
 ai_service = AIService()

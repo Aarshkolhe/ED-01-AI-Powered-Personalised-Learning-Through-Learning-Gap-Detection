@@ -37,9 +37,9 @@ export const RecoveryScoreCard: React.FC<RecoveryScoreCardProps> = ({
 
   if (loading) {
     return (
-      <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800 animate-pulse">
-        <div className="h-4 bg-slate-800 rounded w-1/3 mb-4" />
-        <div className="h-8 bg-slate-800 rounded w-1/2" />
+      <div className="p-6 bg-black/30 backdrop-blur-2xl rounded-3xl border border-white/10 animate-pulse shadow-2xl">
+        <div className="h-4 bg-white/10 rounded w-1/3 mb-4" />
+        <div className="h-8 bg-white/10 rounded w-1/2" />
       </div>
     );
   }
@@ -47,8 +47,8 @@ export const RecoveryScoreCard: React.FC<RecoveryScoreCardProps> = ({
   if (!report) return null;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xl min-w-0 overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between pb-4 border-b border-slate-800 gap-2">
+    <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 sm:p-6 shadow-2xl min-w-0 overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between pb-4 border-b border-white/10 gap-2">
         <div className="min-w-0">
           <h3 className="text-sm sm:text-base font-bold text-slate-100 flex items-center space-x-2 truncate">
             <TrendingUp className="w-5 h-5 text-teal-400 flex-shrink-0" />
@@ -65,31 +65,31 @@ export const RecoveryScoreCard: React.FC<RecoveryScoreCardProps> = ({
 
       {/* Before / After Comparative Metrics */}
       <div className={`grid gap-3 mt-4 min-w-0 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'}`}>
-        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 min-w-0 overflow-hidden">
+        <div className="bg-black/30 p-4 rounded-2xl border border-white/10 min-w-0 overflow-hidden backdrop-blur-xl">
           <span className="text-xs text-slate-400 block truncate">{t('Pre-Remediation Baseline', 'उपचार से पहले (बेसलाइन)')}</span>
           <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 mt-1 min-w-0">
             <span className="text-2xl font-bold font-mono text-slate-200">
               {report.baseline_attempts > 0 ? `${Math.round(report.pre_score * 100)}%` : '—'}
             </span>
-            <span className="text-[11px] text-slate-500 whitespace-nowrap">
+            <span className="text-[11px] text-slate-400 whitespace-nowrap">
               ({report.baseline_attempts} {report.baseline_attempts === 1 ? 'attempt' : 'attempts'})
             </span>
           </div>
         </div>
 
-        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 min-w-0 overflow-hidden">
+        <div className="bg-black/30 p-4 rounded-2xl border border-white/10 min-w-0 overflow-hidden backdrop-blur-xl">
           <span className="text-xs text-slate-400 block truncate">{t('Post-Remediation Assessment', 'उपचार के बाद (पुनर्मूल्यांकन)')}</span>
           <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 mt-1 min-w-0">
             <span className="text-2xl font-bold font-mono text-emerald-400">
               {report.post_attempts > 0 ? `${Math.round(report.post_score * 100)}%` : 'Pending'}
             </span>
-            <span className="text-[11px] text-slate-500 whitespace-nowrap">
+            <span className="text-[11px] text-slate-400 whitespace-nowrap">
               ({report.post_attempts > 0 ? `${report.post_attempts} fresh test` : 'Not yet taken'})
             </span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-teal-950/40 to-slate-950 p-3.5 rounded-xl border border-teal-500/30 min-w-0 overflow-hidden">
+        <div className="bg-gradient-to-br from-teal-950/30 to-black/30 p-4 rounded-2xl border border-teal-500/30 min-w-0 overflow-hidden backdrop-blur-xl">
           <span className="text-xs text-teal-400 font-semibold block truncate">{t('Normalized Recovery Rate', 'रिकवरी दर')}</span>
           <div className="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 mt-1 min-w-0">
             <span className="text-2xl font-bold font-mono text-teal-300">
@@ -106,7 +106,7 @@ export const RecoveryScoreCard: React.FC<RecoveryScoreCardProps> = ({
 
       {/* Concept Progress Lists */}
       <div className={`grid gap-3 mt-4 min-w-0 ${compact ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-        <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 min-w-0 overflow-hidden">
+        <div className="bg-black/30 p-4 rounded-2xl border border-white/10 min-w-0 overflow-hidden backdrop-blur-xl">
           <span className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5 mb-2">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">{t('Concepts Successfully Recovered:', 'सफलतापूर्वक सुधारे गए विषय:')}</span>
@@ -122,7 +122,7 @@ export const RecoveryScoreCard: React.FC<RecoveryScoreCardProps> = ({
           )}
         </div>
 
-        <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 min-w-0 overflow-hidden">
+        <div className="bg-black/30 p-4 rounded-2xl border border-white/10 min-w-0 overflow-hidden backdrop-blur-xl">
           <span className="text-xs font-semibold text-amber-400 flex items-center space-x-1.5 mb-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">{t('Remaining Target Gaps:', 'शेष लक्ष्य गैप:')}</span>
@@ -140,7 +140,7 @@ export const RecoveryScoreCard: React.FC<RecoveryScoreCardProps> = ({
       </div>
 
       {/* Required Psychometric Disclaimer */}
-      <div className="mt-4 flex items-start space-x-2 text-[11px] text-slate-400 bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/80">
+      <div className="mt-4 flex items-start space-x-2 text-[11px] text-slate-400 bg-black/40 p-3 rounded-xl border border-white/10 backdrop-blur-md">
         <Info className="w-3.5 h-3.5 text-teal-400 flex-shrink-0 mt-0.5" />
         <span className="leading-relaxed">{report.disclaimer}</span>
       </div>

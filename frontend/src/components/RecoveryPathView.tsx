@@ -37,7 +37,7 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
 
   if (loading) {
     return (
-      <div className="p-8 text-center bg-slate-900 rounded-2xl border border-slate-800">
+      <div className="p-8 text-center bg-black/30 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl">
         <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-slate-400 mt-2">{t('Generating prerequisite recovery path...', 'रिकवरी पाथ तैयार किया जा रहा है...')}</p>
       </div>
@@ -47,8 +47,8 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
   if (!plan) return null;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+    <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="flex items-center justify-between pb-4 border-b border-white/10">
         <div>
           <h3 className="text-base font-bold text-slate-100 flex items-center space-x-2">
             <Route className="w-5 h-5 text-teal-400" />
@@ -58,7 +58,7 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
             Target Focus: <strong className="text-teal-300">{plan.focal_concept_name}</strong>
           </p>
         </div>
-        <span className="text-xs px-3 py-1 bg-slate-800 text-teal-400 rounded-full font-mono">
+        <span className="text-xs px-3 py-1 bg-black/40 text-teal-300 rounded-full font-mono border border-white/10 backdrop-blur-md">
           Est. Time: {plan.estimated_duration_minutes}m
         </span>
       </div>
@@ -74,10 +74,10 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
             return (
               <div
                 key={step.concept_id}
-                className={`p-4 rounded-xl border flex items-center justify-between ${
+                className={`p-4 rounded-2xl border flex items-center justify-between backdrop-blur-xl transition-all ${
                   isTarget
                     ? 'bg-teal-950/20 border-teal-500/40 shadow-md shadow-teal-500/5'
-                    : 'bg-slate-950/50 border-slate-800'
+                    : 'bg-black/30 border-white/10'
                 }`}
               >
                 <div className="flex items-center space-x-3">
@@ -85,7 +85,7 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
                     className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
                       isTarget
                         ? 'bg-teal-500 text-slate-950 font-extrabold'
-                        : 'bg-slate-800 text-slate-400'
+                        : 'bg-white/10 text-white/80'
                     }`}
                   >
                     {idx + 1}
@@ -109,7 +109,7 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
       </div>
 
       {/* Curated Activities */}
-      <div className="mt-6 pt-5 border-t border-slate-800">
+      <div className="mt-6 pt-5 border-t border-white/10">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
           {t('Recommended Targeted Remediation Activities', 'अनुशंसित उपचारात्मक गतिविधियाँ')}
         </h4>
@@ -117,7 +117,7 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
           {plan.recommended_activities.map((act) => (
             <div
               key={act.id}
-              className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between min-w-0 overflow-hidden"
+              className="p-4 bg-black/30 rounded-2xl border border-white/10 flex flex-col justify-between min-w-0 overflow-hidden backdrop-blur-xl"
             >
               <div className="min-w-0">
                 <span className="text-xs font-mono text-teal-400">{act.estimated_minutes} min</span>
@@ -134,7 +134,7 @@ export const RecoveryPathView: React.FC<RecoveryPathViewProps> = ({
         <div className="mt-6 flex justify-end">
           <button
             onClick={onStartReassessment}
-            className="px-6 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-teal-500/20 flex items-center space-x-2"
+            className="px-6 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-teal-500/20 flex items-center space-x-2 active:scale-95"
           >
             <RefreshCw className="w-4 h-4" />
             <span>{t('Launch Fresh Reassessment', 'ताज़ा पुनर्मूल्यांकन शुरू करें')}</span>

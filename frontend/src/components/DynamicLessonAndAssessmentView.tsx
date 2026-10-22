@@ -139,14 +139,14 @@ export function DynamicLessonAndAssessmentView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-2 rounded-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-black/30 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-xl">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveSubTab('lesson')}
             className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-2 ${
               activeSubTab === 'lesson'
-                ? 'bg-teal-500 text-slate-950 font-bold shadow'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -156,8 +156,8 @@ export function DynamicLessonAndAssessmentView() {
             onClick={() => setActiveSubTab('assessment')}
             className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-2 ${
               activeSubTab === 'assessment'
-                ? 'bg-teal-500 text-slate-950 font-bold shadow'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
           >
             <GraduationCap className="w-4 h-4" />
@@ -170,16 +170,16 @@ export function DynamicLessonAndAssessmentView() {
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value as any)}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-teal-500"
+            className="bg-black/40 border border-white/10 rounded-xl px-2.5 py-1 text-white backdrop-blur-md focus:outline-none focus:border-white/30"
           >
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+            <option value="beginner" className="bg-[#18110c] text-white">Beginner</option>
+            <option value="intermediate" className="bg-[#18110c] text-white">Intermediate</option>
+            <option value="advanced" className="bg-[#18110c] text-white">Advanced</option>
           </select>
         </div>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl">
         <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">
           {t('Select Target Subject & Topic', 'लक्षित विषय एवं अवधारणा चुनें')}
         </h3>
@@ -193,13 +193,13 @@ export function DynamicLessonAndAssessmentView() {
                 const matching = catalog.filter((c) => c.subject === e.target.value);
                 if (matching.length > 0) setSelectedTopic(matching[0].name);
               }}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500"
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-3 py-2 text-sm text-white backdrop-blur-md focus:outline-none focus:border-teal-400"
             >
-              <option value="Mathematics">📐 Mathematics</option>
-              <option value="Physics">⚡ Physics</option>
-              <option value="Chemistry">🧪 Chemistry</option>
-              <option value="Biology">🧬 Biology</option>
-              <option value="Computer Science">💻 Computer Science</option>
+              <option value="Mathematics" className="bg-[#18110c] text-white">📐 Mathematics</option>
+              <option value="Physics" className="bg-[#18110c] text-white">⚡ Physics</option>
+              <option value="Chemistry" className="bg-[#18110c] text-white">🧪 Chemistry</option>
+              <option value="Biology" className="bg-[#18110c] text-white">🧬 Biology</option>
+              <option value="Computer Science" className="bg-[#18110c] text-white">💻 Computer Science</option>
             </select>
           </div>
 
@@ -211,12 +211,12 @@ export function DynamicLessonAndAssessmentView() {
                 setSelectedTopic(e.target.value);
                 setCustomTopic('');
               }}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500"
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-3 py-2 text-sm text-white backdrop-blur-md focus:outline-none focus:border-teal-400"
             >
               {catalog
                 .filter((c) => c.subject === selectedSubject)
                 .map((c) => (
-                  <option key={c.id} value={c.name}>
+                  <option key={c.id} value={c.name} className="bg-[#18110c] text-white">
                     {c.name} {c.status === 'verified' ? '✓ (Verified in Graph)' : '(Community)'}
                   </option>
                 ))}
@@ -230,14 +230,14 @@ export function DynamicLessonAndAssessmentView() {
               value={customTopic}
               onChange={(e) => setCustomTopic(e.target.value)}
               placeholder="e.g. Quantum Superposition, Transformers..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-teal-500"
+              className="w-full bg-black/40 border border-white/10 rounded-2xl px-3 py-2 text-sm text-white placeholder-white/40 backdrop-blur-md focus:outline-none focus:border-teal-400"
             />
           </div>
         </div>
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 flex items-center space-x-2">
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 flex items-center space-x-2 backdrop-blur-md">
           <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -246,7 +246,7 @@ export function DynamicLessonAndAssessmentView() {
       {activeSubTab === 'lesson' && (
         <div className="space-y-6">
           {!lessonData && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4">
+            <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 text-center space-y-4 shadow-2xl">
               <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 mx-auto flex items-center justify-center">
                 <BookOpen className="w-7 h-7" />
               </div>
@@ -280,15 +280,15 @@ export function DynamicLessonAndAssessmentView() {
           )}
 
           {lessonData && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-8 shadow-2xl">
-              <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+            <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 space-y-8 shadow-2xl">
+              <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-white/10 gap-4">
                 <div>
                   <div className="flex items-center space-x-2 mb-1.5">
                     <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/30">
                       {lessonData.subject} · {lessonData.level}
                     </span>
                     {lessonData.is_fallback ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-amber-400 border border-amber-500/20">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-black/40 text-amber-300 border border-amber-500/30 backdrop-blur-md">
                         Curated Engine
                       </span>
                     ) : (
@@ -304,7 +304,7 @@ export function DynamicLessonAndAssessmentView() {
                   <button
                     onClick={handleGenerateLesson}
                     disabled={isGeneratingLesson}
-                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition flex items-center space-x-1.5"
+                    className="px-3.5 py-2 rounded-xl bg-black/40 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-medium transition flex items-center space-x-1.5 backdrop-blur-md"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Regenerate</span>
@@ -323,7 +323,7 @@ export function DynamicLessonAndAssessmentView() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-4">
+                <div className="bg-black/30 border border-white/10 rounded-2xl p-4 backdrop-blur-xl">
                   <h4 className="text-xs font-bold text-teal-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Learning Objectives</span>
@@ -335,7 +335,7 @@ export function DynamicLessonAndAssessmentView() {
                   </ul>
                 </div>
 
-                <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-4">
+                <div className="bg-black/30 border border-white/10 rounded-2xl p-4 backdrop-blur-xl">
                   <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <ListOrdered className="w-4 h-4" />
                     <span>Prerequisites</span>
@@ -353,7 +353,7 @@ export function DynamicLessonAndAssessmentView() {
                   <FileText className="w-4 h-4 text-teal-400" />
                   <span>Core Theory & Invariants</span>
                 </h3>
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                <div className="bg-black/30 border border-white/10 rounded-2xl p-5 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap backdrop-blur-xl">
                   {lessonData.core_explanation}
                 </div>
               </div>
@@ -366,7 +366,7 @@ export function DynamicLessonAndAssessmentView() {
                   </h3>
                   <div className="space-y-3">
                     {lessonData.step_by_step_examples.map((ex, idx) => (
-                      <div key={idx} className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+                      <div key={idx} className="bg-black/30 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-xl">
                         <button
                           type="button"
                           onClick={() => setExpandedExample(expandedExample === idx ? null : idx)}
@@ -376,16 +376,16 @@ export function DynamicLessonAndAssessmentView() {
                           {expandedExample === idx ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                         {expandedExample === idx && (
-                          <div className="p-5 border-t border-slate-800 bg-slate-900/50 space-y-3 text-xs">
+                          <div className="p-5 border-t border-white/10 bg-black/20 space-y-3 text-xs">
                             <div className="space-y-1.5">
                               {ex.steps.map((st: string, sIdx: number) => (
-                                <div key={sIdx} className="text-slate-300 font-mono bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800">
+                                <div key={sIdx} className="text-slate-300 font-mono bg-black/40 px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-md">
                                   {st}
                                 </div>
                               ))}
                             </div>
                             {ex.takeaway && (
-                              <div className="p-2.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-300 font-medium">
+                              <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-300 font-medium">
                                 💡 Takeaway: {ex.takeaway}
                               </div>
                             )}
@@ -405,12 +405,12 @@ export function DynamicLessonAndAssessmentView() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {lessonData.common_mistakes_and_misconceptions.map((m, idx) => (
-                      <div key={idx} className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">
+                      <div key={idx} className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-2 backdrop-blur-xl">
                         <div className="text-xs font-bold text-rose-400">⚠️ {m.mistake}</div>
                         <div className="text-xs text-slate-400">
                           <span className="font-semibold text-slate-300">Why it happens:</span> {m.why_it_happens}
                         </div>
-                        <div className="text-xs text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 p-2 rounded-lg">
+                        <div className="text-xs text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 p-2 rounded-xl">
                           <span className="font-semibold">How to fix:</span> {m.how_to_fix}
                         </div>
                       </div>
@@ -427,12 +427,12 @@ export function DynamicLessonAndAssessmentView() {
                   </h3>
                   <div className="space-y-3">
                     {lessonData.practice_questions.map((pq, idx) => (
-                      <div key={idx} className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                      <div key={idx} className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-3 backdrop-blur-xl">
                         <div className="text-xs font-semibold text-slate-200">
                           Question {idx + 1}: {pq.prompt}
                         </div>
                         {pq.hint && (
-                          <div className="text-xs text-amber-300/80 bg-amber-500/5 p-2 rounded-lg border border-amber-500/10">
+                          <div className="text-xs text-amber-300/80 bg-amber-500/5 p-2 rounded-xl border border-amber-500/10">
                             💡 Hint: {pq.hint}
                           </div>
                         )}
@@ -445,7 +445,7 @@ export function DynamicLessonAndAssessmentView() {
                             {revealedSolutions[idx] ? 'Hide Solution' : 'Reveal Solution'}
                           </button>
                           {revealedSolutions[idx] && (
-                            <div className="mt-2 p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300 font-mono">
+                            <div className="mt-2 p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-slate-300 font-mono backdrop-blur-md">
                               {pq.solution}
                             </div>
                           )}
@@ -456,7 +456,7 @@ export function DynamicLessonAndAssessmentView() {
                 </div>
               )}
 
-              <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-5 space-y-2">
+              <div className="bg-black/30 border border-white/10 rounded-2xl p-5 space-y-2 backdrop-blur-xl">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider">Lesson Summary</h4>
                 <p className="text-xs text-slate-300 leading-relaxed">{lessonData.short_summary}</p>
                 {lessonData.suggested_next_steps.length > 0 && (
@@ -478,7 +478,7 @@ export function DynamicLessonAndAssessmentView() {
       {activeSubTab === 'assessment' && (
         <div className="space-y-6">
           {!assessmentSession && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+            <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
               <div>
                 <h3 className="text-lg font-bold text-white">
                   Diagnostic Assessment: {activeTopicName}
@@ -543,8 +543,8 @@ export function DynamicLessonAndAssessmentView() {
           )}
 
           {assessmentSession && !assessmentResult && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-8 shadow-xl">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 space-y-8 shadow-2xl">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10">
                 <div>
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/30">
                     {assessmentSession.subject} · {assessmentSession.topic}
@@ -553,7 +553,7 @@ export function DynamicLessonAndAssessmentView() {
                 </div>
                 <button
                   onClick={() => setAssessmentSession(null)}
-                  className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300"
+                  className="px-3 py-1 rounded-xl bg-black/40 hover:bg-white/10 border border-white/10 text-xs text-white/80 backdrop-blur-md"
                 >
                   Cancel
                 </button>
@@ -561,7 +561,7 @@ export function DynamicLessonAndAssessmentView() {
 
               <div className="space-y-6">
                 {assessmentSession.questions.map((q, qIdx) => (
-                  <div key={q.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-4">
+                  <div key={q.id} className="bg-black/30 border border-white/10 rounded-2xl p-6 space-y-4 backdrop-blur-xl">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                         Question {qIdx + 1} of {assessmentSession.total_questions}
@@ -578,10 +578,10 @@ export function DynamicLessonAndAssessmentView() {
                             key={opt.id}
                             type="button"
                             onClick={() => setUserAnswers((prev) => ({ ...prev, [q.id]: opt.text }))}
-                            className={`p-3.5 rounded-xl border text-left text-xs font-medium transition flex items-center space-x-2 ${
+                            className={`p-3.5 rounded-xl border text-left text-xs font-medium transition flex items-center space-x-2 backdrop-blur-md ${
                               isSelected
-                                ? 'bg-teal-500/10 border-teal-500 text-teal-300 font-bold'
-                                : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                                ? 'bg-teal-500/15 border-teal-500 text-teal-300 font-bold shadow-sm'
+                                : 'bg-black/40 border-white/10 text-white/80 hover:bg-white/10'
                             }`}
                           >
                             <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center flex-shrink-0 text-[10px]">
@@ -593,7 +593,7 @@ export function DynamicLessonAndAssessmentView() {
                       })}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-900 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/10 text-xs">
                       <div>
                         <label className="text-slate-400 block mb-1">How confident do you feel?</label>
                         <div className="grid grid-cols-3 gap-2">
@@ -602,10 +602,10 @@ export function DynamicLessonAndAssessmentView() {
                               key={conf}
                               type="button"
                               onClick={() => setUserConfidences((prev) => ({ ...prev, [q.id]: conf }))}
-                              className={`py-1.5 rounded-lg border capitalize text-center font-medium transition ${
+                              className={`py-1.5 rounded-lg border capitalize text-center font-medium transition backdrop-blur-md ${
                                 userConfidences[q.id] === conf
-                                  ? 'bg-slate-800 border-teal-500 text-teal-400 font-bold'
-                                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                                  ? 'bg-teal-500/20 border-teal-500 text-teal-300 font-bold'
+                                  : 'bg-black/40 border-white/10 text-white/70 hover:text-white'
                               }`}
                             >
                               {conf}
@@ -621,7 +621,7 @@ export function DynamicLessonAndAssessmentView() {
                           value={userReasonings[q.id] || ''}
                           onChange={(e) => setUserReasonings((prev) => ({ ...prev, [q.id]: e.target.value }))}
                           placeholder="Why did you choose this answer?"
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-white/40 focus:outline-none focus:border-teal-400 backdrop-blur-md"
                         />
                       </div>
                     </div>
@@ -634,7 +634,7 @@ export function DynamicLessonAndAssessmentView() {
                   type="button"
                   onClick={handleSubmitAssessment}
                   disabled={isSubmitting || Object.keys(userAnswers).length === 0}
-                  className="px-6 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm transition shadow-lg shadow-teal-500/20 inline-flex items-center space-x-2 disabled:opacity-50"
+                  className="px-6 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm transition shadow-lg shadow-teal-500/20 inline-flex items-center space-x-2 disabled:opacity-50 active:scale-95"
                 >
                   {isSubmitting ? (
                     <>
@@ -653,8 +653,8 @@ export function DynamicLessonAndAssessmentView() {
           )}
 
           {assessmentResult && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-8 shadow-2xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+            <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 space-y-8 shadow-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-white/10 gap-4">
                 <div>
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/30">
                     Results & Step Breakdown
@@ -691,7 +691,7 @@ export function DynamicLessonAndAssessmentView() {
                 {assessmentResult.evaluations.map((evalItem, idx) => (
                   <div
                     key={idx}
-                    className={`bg-slate-950 border rounded-2xl p-6 space-y-4 ${
+                    className={`bg-black/30 border rounded-2xl p-6 space-y-4 backdrop-blur-xl ${
                       evalItem.is_correct ? 'border-emerald-500/30' : 'border-rose-500/30'
                     }`}
                   >
@@ -733,7 +733,7 @@ export function DynamicLessonAndAssessmentView() {
                     )}
 
                     {evalItem.worked_solution && evalItem.worked_solution.length > 0 && (
-                      <div className="space-y-1 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+                      <div className="space-y-1 bg-black/40 p-3.5 rounded-xl border border-white/10 backdrop-blur-md">
                         <span className="text-[11px] font-bold text-teal-400 uppercase tracking-wider block mb-1">
                           Full Step Solution:
                         </span>
@@ -753,7 +753,7 @@ export function DynamicLessonAndAssessmentView() {
               </div>
 
               {assessmentResult.suggested_next_steps.length > 0 && (
-                <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-2">
+                <div className="bg-black/30 border border-white/10 rounded-2xl p-5 space-y-2 backdrop-blur-xl">
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider">
                     Recommended Pedagogical Next Steps
                   </h4>

@@ -149,7 +149,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
 
   if (questions.length === 0) {
     return (
-      <div className="p-8 text-center bg-slate-900 rounded-2xl border border-slate-800">
+      <div className="p-8 text-center bg-black/30 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl">
         <p className="text-sm text-slate-300">
           {t('No diagnostic questions found for this topic.', 'इस विषय के लिए कोई प्रश्न नहीं मिला।')}
         </p>
@@ -161,10 +161,10 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
   const promptText = (language === 'hi' && currentQ.prompt_hi) ? currentQ.prompt_hi : currentQ.prompt;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+    <div className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl relative">
       {/* Feature C: Explainable Recommendation Badge */}
       {recommendation && (
-        <div className="mb-4 p-3 bg-teal-950/30 border border-teal-500/30 rounded-xl text-xs flex items-start space-x-2.5">
+        <div className="mb-4 p-3 bg-black/40 border border-teal-500/30 rounded-2xl backdrop-blur-md text-xs flex items-start space-x-2.5">
           <Info className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <div className="flex items-center space-x-2">
@@ -183,18 +183,18 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
       )}
 
       {/* Quiz Progress Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800 text-xs">
+      <div className="flex items-center justify-between pb-4 border-b border-white/10 text-xs">
         <div className="flex items-center space-x-2">
           <span className="font-semibold uppercase tracking-wider text-teal-400">
             {isReassessment ? t('Reassessment (Post-Test)', 'पुनर्मूल्यांकन (पोस्ट-टेस्ट)') : t('Diagnostic Assessment', 'निदानात्मक मूल्यांकन')}
           </span>
-          <span className="text-slate-500">•</span>
+          <span className="text-white/40">•</span>
           <span className="text-slate-400">{currentQ.concept_id}</span>
         </div>
 
         <div className="flex items-center space-x-3 text-slate-400 font-medium">
           <span>Question {currentIndex + 1} of {questions.length}</span>
-          <div className="w-24 bg-slate-800 rounded-full h-2 overflow-hidden">
+          <div className="w-24 bg-white/10 rounded-full h-2 overflow-hidden">
             <div
               className="bg-teal-400 h-full transition-all duration-300"
               style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
@@ -205,7 +205,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
           <button
             onClick={() => setReportModalOpen(true)}
             title="Report an issue with this question"
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-rose-400 transition-colors"
+            className="p-1 rounded-lg hover:bg-white/10 text-white/50 hover:text-rose-400 transition-colors"
           >
             <Flag className="w-3.5 h-3.5" />
           </button>
@@ -230,16 +230,16 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
               key={opt.id}
               onClick={() => !evaluation && setSelectedOption(opt.text)}
               disabled={evaluation !== null}
-              className={`w-full text-left p-4 rounded-xl border font-mono text-sm transition-all flex items-center justify-between ${
+              className={`w-full text-left p-4 rounded-xl border font-mono text-sm transition-all flex items-center justify-between backdrop-blur-md ${
                 isSelected
-                  ? 'border-teal-500 bg-teal-500/10 text-teal-200 shadow-md shadow-teal-500/10'
-                  : 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/80 hover:border-slate-700 text-slate-300'
+                  ? 'border-teal-500 bg-teal-500/15 text-teal-200 shadow-md shadow-teal-500/10'
+                  : 'border-white/10 bg-black/30 hover:bg-white/10 hover:border-white/20 text-white/90'
               }`}
             >
               <span>{optText}</span>
               <div
                 className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                  isSelected ? 'border-teal-400 bg-teal-400 text-slate-950' : 'border-slate-600'
+                  isSelected ? 'border-teal-400 bg-teal-400 text-slate-950' : 'border-white/30'
                 }`}
               >
                 {isSelected && <div className="w-2 h-2 rounded-full bg-slate-950" />}
@@ -251,7 +251,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
 
       {/* Feature A: Optional Confidence Level Selector */}
       {!evaluation && (
-        <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2">
+        <div className="mt-5 pt-4 border-t border-white/10 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
               <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
@@ -261,7 +261,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedConfidence(undefined)}
-                className="text-[11px] text-slate-500 hover:text-slate-300"
+                className="text-[11px] text-slate-400 hover:text-white"
               >
                 Clear
               </button>
@@ -280,14 +280,14 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
                   key={lvl.val}
                   type="button"
                   onClick={() => setSelectedConfidence(active ? undefined : lvl.val)}
-                  className={`p-2.5 rounded-xl border text-center transition-all ${
+                  className={`p-2.5 rounded-xl border text-center transition-all backdrop-blur-md ${
                     active
                       ? 'bg-teal-500/20 border-teal-500 text-teal-300 shadow-md shadow-teal-500/10'
-                      : `bg-slate-950/60 border-slate-800 text-slate-400 ${lvl.color}`
+                      : `bg-black/30 border-white/10 text-white/70 ${lvl.color}`
                   }`}
                 >
                   <div className="text-xs font-bold">{lvl.label}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5 truncate">{lvl.desc}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5 truncate">{lvl.desc}</div>
                 </button>
               );
             })}
@@ -306,7 +306,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
             value={freeTextReasoning}
             onChange={(e) => setFreeTextReasoning(e.target.value)}
             placeholder={t("e.g., 'I added 1+1 and 2+3 to get the new fraction'", "उदा. 'मैंने अंश और हर दोनों को जोड़ दिया'")}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+            className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-teal-400 backdrop-blur-md"
           />
         </div>
       )}
@@ -317,7 +317,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
           <button
             onClick={handleSubmit}
             disabled={!selectedOption || submitting}
-            className="px-6 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:opacity-40 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-teal-500/20 flex items-center space-x-2"
+            className="px-6 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:opacity-40 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-teal-500/20 flex items-center space-x-2 active:scale-95"
           >
             {submitting ? (
               <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -331,12 +331,12 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
 
       {/* Comprehensive Evaluation & AI Misconception Feedback */}
       {evaluation && (
-        <div className="mt-6 pt-5 border-t border-slate-800 space-y-4">
+        <div className="mt-6 pt-5 border-t border-white/10 space-y-4">
           <div
-            className={`p-4 rounded-xl border ${
+            className={`p-5 rounded-2xl border backdrop-blur-xl ${
               evaluation.is_correct
-                ? 'bg-emerald-950/30 border-emerald-500/40'
-                : 'bg-rose-950/30 border-rose-500/40'
+                ? 'bg-emerald-950/20 border-emerald-500/40 shadow-lg shadow-emerald-500/5'
+                : 'bg-rose-950/20 border-rose-500/40 shadow-lg shadow-rose-500/5'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -364,7 +364,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
 
             {/* Misconception details */}
             {evaluation.detected_misconception && (
-              <div className="mt-3 p-3 bg-slate-950/70 rounded-lg border border-slate-800 text-xs">
+              <div className="mt-3 p-3.5 bg-black/30 rounded-xl border border-white/10 text-xs backdrop-blur-md">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-amber-400 font-bold uppercase tracking-wider">
                     {t('Detected Trap:', 'पहचानी गई भूल:')} {evaluation.detected_misconception}
@@ -383,7 +383,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
 
             {/* AI feedback */}
             {evaluation.ai_feedback && (
-              <div className="mt-3 flex items-start space-x-2 text-xs text-teal-300 bg-teal-950/20 border border-teal-500/20 p-3 rounded-lg">
+              <div className="mt-3 flex items-start space-x-2 text-xs text-teal-300 bg-teal-950/20 border border-teal-500/20 p-3 rounded-xl backdrop-blur-md">
                 <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold">{t('Tutor Feedback:', 'शिक्षक सुझाव:')} </span>
@@ -394,7 +394,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
 
             {/* Step-by-Step Worked Solution (Spec §7, §20) */}
             {evaluation.worked_solution && evaluation.worked_solution.length > 0 && (
-              <div className="mt-3 p-3 bg-slate-950/80 rounded-lg border border-teal-500/30 text-xs">
+              <div className="mt-3 p-3.5 bg-black/30 rounded-xl border border-teal-500/30 text-xs backdrop-blur-md">
                 <span className="text-teal-400 font-bold uppercase tracking-wider block mb-1">
                   {t('Step-by-Step Worked Solution:', 'चरण-दर-चरण हल:')}
                 </span>
@@ -415,7 +415,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
 
             {/* Diagnostic Follow-Up Question Disambiguation (Spec §18.3) */}
             {evaluation.needs_follow_up && evaluation.follow_up_question && (
-              <div className="mt-4 p-4 bg-purple-950/30 border border-purple-500/40 rounded-xl">
+              <div className="mt-4 p-4 bg-purple-950/20 border border-purple-500/30 rounded-2xl backdrop-blur-xl">
                 <div className="flex items-center space-x-2 text-purple-300 font-bold text-xs uppercase tracking-wider mb-2">
                   <Sparkles className="w-4 h-4 text-purple-400" />
                   <span>{t('Diagnostic Follow-Up Clarification', 'निदानात्मक अनुवर्ती स्पष्टीकरण')}</span>
@@ -426,7 +426,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
                     "आपकी समझ को सटीकता से जानने के लिए एक छोटा अनुवर्ती प्रश्न:"
                   )}
                 </p>
-                <div className="p-3 bg-slate-950/90 rounded-lg border border-purple-500/30 text-xs font-medium text-slate-200 mb-3">
+                <div className="p-3 bg-black/40 rounded-xl border border-purple-500/30 text-xs font-medium text-slate-200 mb-3 backdrop-blur-md">
                   {evaluation.follow_up_question.prompt}
                 </div>
                 <div className="space-y-2 mb-3">
@@ -438,16 +438,16 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
                         type="button"
                         onClick={() => setFollowUpOption(fOpt.text)}
                         disabled={submittingFollowUp}
-                        className={`w-full text-left p-3 rounded-lg border text-xs font-mono transition-all flex items-center justify-between ${
+                        className={`w-full text-left p-3 rounded-xl border text-xs font-mono transition-all flex items-center justify-between backdrop-blur-md ${
                           isFSelected
                             ? 'border-purple-500 bg-purple-500/20 text-purple-200 shadow-sm'
-                            : 'border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300'
+                            : 'border-white/10 bg-black/30 hover:bg-white/10 text-white/90'
                         }`}
                       >
                         <span>{fOpt.text}</span>
                         <div
                           className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            isFSelected ? 'border-purple-400 bg-purple-400 text-slate-950' : 'border-slate-600'
+                            isFSelected ? 'border-purple-400 bg-purple-400 text-slate-950' : 'border-white/30'
                           }`}
                         >
                           {isFSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
@@ -460,7 +460,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
                   type="button"
                   onClick={handleFollowUpSubmit}
                   disabled={!followUpOption || submittingFollowUp}
-                  className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs transition-all flex items-center space-x-2"
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs transition-all flex items-center space-x-2"
                 >
                   {submittingFollowUp ? (
                     <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -473,7 +473,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
             )}
 
             {/* BKT Mastery Update Metrics */}
-            <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
               <div>
                 <span>BKT Prior: </span>
                 <span className="font-mono text-slate-200">{(evaluation.previous_mastery * 100).toFixed(1)}%</span>
@@ -486,8 +486,8 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
                   ({evaluation.mastery_change >= 0 ? '+' : ''}{(evaluation.mastery_change * 100).toFixed(1)}%)
                 </span>
               </div>
-              <span className="text-slate-500">
-                Pacing: <strong className="text-slate-400">{evaluation.time_signal}</strong>
+              <span className="text-slate-400">
+                Pacing: <strong className="text-white/80">{evaluation.time_signal}</strong>
               </span>
             </div>
           </div>
@@ -495,7 +495,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
           <div className="flex justify-between items-center">
             <button
               onClick={() => setReportModalOpen(true)}
-              className="text-xs text-slate-500 hover:text-rose-400 transition-colors flex items-center space-x-1"
+              className="text-xs text-slate-400 hover:text-rose-400 transition-colors flex items-center space-x-1"
             >
               <Flag className="w-3.5 h-3.5" />
               <span>Report an issue with this question</span>
@@ -503,7 +503,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
 
             <button
               onClick={handleNext}
-              className="px-6 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition-colors flex items-center space-x-2"
+              className="px-6 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-semibold text-xs transition-colors flex items-center space-x-2 backdrop-blur-md"
             >
               <span>
                 {currentIndex + 1 < questions.length

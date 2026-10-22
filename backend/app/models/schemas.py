@@ -330,12 +330,12 @@ class ClassroomAnalytics(BaseModel):
 
 
 # =======================================================================
-# xAI Grok & Dynamic Learning Schemas
+# Google Gemini & Dynamic Learning Schemas
 # =======================================================================
 
 class AIProviderHealth(BaseModel):
     status: str  # "ready", "missing_key", "rate_limited", "invalid_key", "error", "offline_fallback"
-    provider: str = "xAI Grok"
+    provider: str = "Google Gemini"
     model: str
     is_configured: bool
     is_fallback: bool

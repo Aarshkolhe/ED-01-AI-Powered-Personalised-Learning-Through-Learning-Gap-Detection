@@ -52,16 +52,16 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
+      <div className="relative w-full max-w-md bg-black/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-4">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+          className="absolute top-5 right-5 text-white/50 hover:text-white transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center space-x-2 pb-3 border-b border-slate-800">
+        <div className="flex items-center space-x-2 pb-3 border-b border-white/10">
           <Flag className="w-5 h-5 text-rose-400" />
           <h3 className="text-sm font-bold text-white">Report an Issue with Question</h3>
         </div>
@@ -70,38 +70,38 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
           <div className="p-6 text-center space-y-2">
             <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto" />
             <p className="text-sm font-bold text-white">Thank you for your feedback!</p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-white/60">
               Our teaching staff has received this report and will review the question promptly.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-rose-950/30 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center space-x-2">
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 flex items-center space-x-2 backdrop-blur-xl">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-white/80 mb-1.5">
                 Issue Category
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-3 py-2 text-xs text-white backdrop-blur-md focus:outline-none focus:border-teal-400"
               >
-                <option value="incorrect_answer_key">Incorrect Answer Key / Wrong Solution</option>
-                <option value="ambiguous_wording">Ambiguous or Confusing Question Wording</option>
-                <option value="typo_or_formatting">Typo, Sign Slip, or Math Formatting Issue</option>
-                <option value="pedagogically_unclear">Pedagogically Unclear / Unhelpful Explanation</option>
-                <option value="technical_glitch">Technical Glitch / Option Display Error</option>
+                <option value="incorrect_answer_key" className="bg-[#18110c] text-white">Incorrect Answer Key / Wrong Solution</option>
+                <option value="ambiguous_wording" className="bg-[#18110c] text-white">Ambiguous or Confusing Question Wording</option>
+                <option value="typo_or_formatting" className="bg-[#18110c] text-white">Typo, Sign Slip, or Math Formatting Issue</option>
+                <option value="pedagogically_unclear" className="bg-[#18110c] text-white">Pedagogically Unclear / Unhelpful Explanation</option>
+                <option value="technical_glitch" className="bg-[#18110c] text-white">Technical Glitch / Option Display Error</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-white/80 mb-1.5">
                 Detailed Description
               </label>
               <textarea
@@ -109,7 +109,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 placeholder="Explain what was incorrect or unclear about this question..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 text-xs text-white placeholder-white/40 backdrop-blur-md focus:outline-none focus:border-teal-400"
                 required
               />
             </div>
@@ -118,7 +118,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-colors"
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-semibold text-white transition-colors backdrop-blur-md"
               >
                 Cancel
               </button>

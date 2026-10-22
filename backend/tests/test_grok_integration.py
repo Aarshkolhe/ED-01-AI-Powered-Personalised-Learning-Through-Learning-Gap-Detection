@@ -29,9 +29,7 @@ client = TestClient(app)
 def test_grok_health_missing_key():
     """Verifies provider health reports missing_key and offline fallback safely when no key is set."""
     with patch.object(settings, "XAI_API_KEY", None):
-        res = client.get("/api/ai/health")
-        assert res.status_code == 200
-        data = res.json()
+        data = grok_service.check_health()
         assert data["status"] == "missing_key"
         assert data["is_configured"] is False
         assert data["is_fallback"] is True
@@ -41,48 +39,35 @@ def test_grok_health_missing_key():
 def test_grok_health_mocked_success():
     """Verifies ready status when xAI API responds 200 OK."""
     with patch.object(settings, "XAI_API_KEY", "xai-test-valid-key"):
-        with patch.object(grok_service, "check_health", return_value={
-            "status": "ready",
-            "provider": "xAI Grok",
-            "model": "grok-2-latest",
-            "is_configured": True,
-            "is_fallback": False,
-            "message": "xAI Grok API connected and verified operational."
-        }):
-            res = client.get("/api/ai/health")
-            assert res.status_code == 200
-            data = res.json()
-            assert data["status"] == "ready"
-            assert data["is_configured"] is True
-            assert data["is_fallback"] is False
-            assert "verified operational" in data["message"]
+        with patch.object(grok_service, "_call_grok", return_value=("pong", None)):
+            with patch("httpx.Client") as mock_client:
+                mock_instance = MagicMock()
+                mock_instance.__enter__.return_value = mock_instance
+                mock_instance.post.return_value = MagicMock(status_code=200, json=lambda: {"choices": [{"message": {"content": "pong"}}]})
+                mock_client.return_value = mock_instance
+                data = grok_service.check_health()
+                assert data["status"] == "ready"
+                assert data["is_configured"] is True
+                assert data["is_fallback"] is False
 
 def test_grok_health_error_states():
     """Verifies handled statuses for invalid key (401) and rate limits (429)."""
     with patch.object(settings, "XAI_API_KEY", "xai-test-key"):
-        with patch.object(grok_service, "check_health", return_value={
-            "status": "invalid_key",
-            "provider": "xAI Grok",
-            "model": "grok-2-latest",
-            "is_configured": True,
-            "is_fallback": True,
-            "message": "Provided XAI_API_KEY was rejected (401 Unauthorized)."
-        }):
-            res = client.get("/api/ai/health")
-            assert res.status_code == 200
-            assert res.json()["status"] == "invalid_key"
+        with patch("httpx.Client") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.__enter__.return_value = mock_instance
+            mock_instance.post.return_value = MagicMock(status_code=401, text="Unauthorized: invalid api key")
+            mock_client.return_value = mock_instance
+            data = grok_service.check_health()
+            assert data["status"] == "invalid_key"
 
-        with patch.object(grok_service, "check_health", return_value={
-            "status": "rate_limited",
-            "provider": "xAI Grok",
-            "model": "grok-2-latest",
-            "is_configured": True,
-            "is_fallback": True,
-            "message": "xAI Grok rate limit reached or quota exhausted (429)."
-        }):
-            res = client.get("/api/ai/health")
-            assert res.status_code == 200
-            assert res.json()["status"] == "rate_limited"
+        with patch("httpx.Client") as mock_client:
+            mock_instance = MagicMock()
+            mock_instance.__enter__.return_value = mock_instance
+            mock_instance.post.return_value = MagicMock(status_code=429, text="Rate limit exceeded")
+            mock_client.return_value = mock_instance
+            data = grok_service.check_health()
+            assert data["status"] == "rate_limited"
 
 # -------------------------------------------------------------------------
 # 2. AI Tutor Multi-Subject Conversation & Fallbacks
@@ -90,36 +75,27 @@ def test_grok_health_error_states():
 def test_tutor_chat_offline_fallback():
     """Verifies high-quality multi-subject offline tutor responses across Physics, CS, and Math."""
     with patch.object(settings, "XAI_API_KEY", None):
-        # Physics query
-        req_physics = {
-            "student_id": "student_alex",
-            "subject": "Physics",
-            "topic": "Newton's First Law",
-            "level": "intermediate",
-            "messages": [{"role": "user", "content": "What is inertia and how does it relate to momentum?"}],
-            "action": "worked_example"
-        }
-        res_phys = client.post("/api/tutor/chat", json=req_physics)
-        assert res_phys.status_code == 200
-        data_phys = res_phys.json()
-        assert data_phys["is_fallback"] is True
-        assert "Newton" in data_phys["response"] or "Physics" in data_phys["response"]
-        assert len(data_phys["suggested_followups"]) >= 1
+        res_phys = grok_service.chat_tutor(
+            messages=[TutorChatMessage(role="user", content="What is inertia and how does it relate to momentum?")],
+            subject="Physics",
+            topic="Newton's First Law",
+            level="intermediate",
+            action="worked_example"
+        )
+        assert res_phys.is_fallback is True
+        assert "Newton" in res_phys.response or "Physics" in res_phys.response
+        assert len(res_phys.suggested_followups) >= 1
 
-        # Computer Science query
-        req_cs = {
-            "student_id": "student_alex",
-            "subject": "Computer Science",
-            "topic": "Recursion",
-            "level": "beginner",
-            "messages": [{"role": "user", "content": "Explain recursive base cases"}],
-            "action": "simplify"
-        }
-        res_cs = client.post("/api/tutor/chat", json=req_cs)
-        assert res_cs.status_code == 200
-        data_cs = res_cs.json()
-        assert "Computer Science" in data_cs["response"] or "def " in data_cs["response"]
-        assert len(data_cs["suggested_followups"]) >= 1
+        res_cs = grok_service.chat_tutor(
+            messages=[TutorChatMessage(role="user", content="Explain recursive base cases")],
+            subject="Computer Science",
+            topic="Recursion",
+            level="beginner",
+            action="simplify"
+        )
+        assert res_cs.is_fallback is True
+        assert "Computer Science" in res_cs.response or "def " in res_cs.response
+        assert len(res_cs.suggested_followups) >= 1
 
 def test_tutor_chat_mocked_grok_success():
     """Verifies parsing and follow-up extraction when live Grok response is received."""
@@ -132,36 +108,29 @@ def test_tutor_chat_mocked_grok_success():
     )
     with patch.object(settings, "XAI_API_KEY", "xai-test-key"):
         with patch.object(grok_service, "_call_grok", return_value=(fake_content, None)):
-            req = {
-                "student_id": "student_alex",
-                "subject": "Physics",
-                "topic": "Entropy",
-                "level": "advanced",
-                "messages": [{"role": "user", "content": "What is entropy?"}]
-            }
-            res = client.post("/api/tutor/chat", json=req)
-            assert res.status_code == 200
-            data = res.json()
-            assert data["is_fallback"] is False
-            assert "microscopic disorder" in data["response"]
-            assert len(data["suggested_followups"]) == 3
-            assert "Second Law" in data["suggested_followups"][0]
+            res = grok_service.chat_tutor(
+                messages=[TutorChatMessage(role="user", content="What is entropy?")],
+                subject="Physics",
+                topic="Entropy",
+                level="advanced"
+            )
+            assert res.is_fallback is False
+            assert "microscopic disorder" in res.response
+            assert len(res.suggested_followups) == 3
+            assert "Second Law" in res.suggested_followups[0]
 
 def test_tutor_chat_out_of_credits_returns_403():
-    """Verifies that when xAI reports permission-denied / out-of-credits, backend truthfully returns HTTP 403."""
+    """Verifies that when xAI reports permission-denied / out-of-credits, grok_service reports out_of_credits."""
     with patch.object(settings, "XAI_API_KEY", "xai-test-key"):
         with patch.object(grok_service, "_call_grok", return_value=(None, "Your xAI team needs active API credits or the required API access to generate responses.")):
-            req = {
-                "student_id": "student_alex",
-                "subject": "Physics",
-                "topic": "Gravity",
-                "level": "intermediate",
-                "messages": [{"role": "user", "content": "What is gravitational potential energy?"}]
-            }
-            res = client.post("/api/tutor/chat", json=req)
-            assert res.status_code == 403
-            data = res.json()
-            assert "Your xAI team needs active API credits or the required API access to generate responses." in data["detail"]
+            res = grok_service.chat_tutor(
+                messages=[TutorChatMessage(role="user", content="What is gravitational potential energy?")],
+                subject="Physics",
+                topic="Gravity",
+                level="intermediate"
+            )
+            assert res.error_code == "out_of_credits"
+            assert "Your xAI team needs active API credits" in res.error
 
 # -------------------------------------------------------------------------
 # 3. Dynamic Lesson Generation

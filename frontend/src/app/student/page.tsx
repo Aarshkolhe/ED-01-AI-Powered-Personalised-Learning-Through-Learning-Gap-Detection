@@ -29,11 +29,21 @@ export default function StudentPortalPage() {
   const [focalConcept, setFocalConcept] = useState<string>('fraction_addition_unlike');
   const [isReassessment, setIsReassessment] = useState<boolean>(false);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam && ['ask-ai', 'lessons', 'diagnostic', 'revision', 'graph', 'recovery', 'steps', 'generator'].includes(tabParam)) {
+        setActiveTab(tabParam as any);
+      }
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-transparent text-slate-100 p-4 sm:p-6 md:p-10 max-w-full overflow-x-hidden">
       <div className="max-w-7xl mx-auto space-y-8 min-w-0 w-full">
         {/* Header Banner */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-white/10 gap-4">
           <div className="flex items-center space-x-4">
             <ThinkFlowLogo size="sm" withLink priority />
             <div>
@@ -63,7 +73,7 @@ export default function StudentPortalPage() {
               <Bot className="w-3.5 h-3.5" />
               <span>{t('Ask ThinkFlow (AI)', 'थिंकफ्लो एआई से पूछें')}</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded bg-teal-600/30 text-teal-200 border border-teal-500/30 font-semibold uppercase">
-                Grok
+                Gemini
               </span>
             </button>
 
@@ -185,29 +195,17 @@ export default function StudentPortalPage() {
           </div>
         )}
 
-        {/* Feature B: Full Spaced Revision View with Glass Calendar */}
+        {/* Feature B: Full Spaced Revision View */}
         {activeTab === 'revision' && (
-          <div className="max-w-5xl mx-auto space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-              <div className="lg:col-span-2">
-                <SpacedRevisionPanel
-                  studentId={activeStudentId}
-                  onSelectConceptForPractice={(cid) => {
-                    setFocalConcept(cid);
-                    setIsReassessment(false);
-                    setActiveTab('diagnostic');
-                  }}
-                />
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="w-full flex items-center justify-between mb-3 px-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/70">
-                    {t('Study & Revision Calendar', 'अध्ययन एवं रिवीजन कैलेंडर')}
-                  </h4>
-                </div>
-                <GlassCalendar />
-              </div>
-            </div>
+          <div className="max-w-4xl mx-auto space-y-6">
+            <SpacedRevisionPanel
+              studentId={activeStudentId}
+              onSelectConceptForPractice={(cid) => {
+                setFocalConcept(cid);
+                setIsReassessment(false);
+                setActiveTab('diagnostic');
+              }}
+            />
           </div>
         )}
 
