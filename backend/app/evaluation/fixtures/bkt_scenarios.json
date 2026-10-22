@@ -1,0 +1,32 @@
+[
+  {
+    "id": "bkt-scen-01",
+    "description": "Monotonic increase on 3 consecutive correct attempts",
+    "prior": 0.30,
+    "sequence": [true, true, true],
+    "expectedDirection": "strictly_increasing",
+    "minFinalMastery": 0.85
+  },
+  {
+    "id": "bkt-scen-02",
+    "description": "Monotonic decrease on 3 consecutive incorrect attempts",
+    "prior": 0.70,
+    "sequence": [false, false, false],
+    "expectedDirection": "strictly_decreasing",
+    "maxFinalMastery": 0.35
+  },
+  {
+    "id": "bkt-scen-03",
+    "description": "Idempotency safeguard: repeated identical attempt must not apply BKT update twice",
+    "prior": 0.40,
+    "attemptId": "idemp-eval-test-1",
+    "simulateRetry": true,
+    "expectedUpdateCount": 1
+  },
+  {
+    "id": "bkt-scen-04",
+    "description": "Confidence isolation: passing low, medium, high or null confidence yields identical BKT values",
+    "prior": 0.50,
+    "testConfidenceIsolation": true
+  }
+]

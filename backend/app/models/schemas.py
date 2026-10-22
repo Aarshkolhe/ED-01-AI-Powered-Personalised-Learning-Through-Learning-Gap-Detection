@@ -5,6 +5,7 @@ from enum import Enum
 class UserRole(str, Enum):
     STUDENT = "student"
     TEACHER = "teacher"
+    ADMIN = "admin"
 
 class ConceptDifficulty(str, Enum):
     BEGINNER = "beginner"
@@ -29,6 +30,19 @@ class QuestionOption(BaseModel):
     misconception_explanation: Optional[str] = None
     misconception_explanation_hi: Optional[str] = None
 
+# Feature D: Teacher Review of AI-Generated Content States
+class ContentReviewStatus(str, Enum):
+    DRAFT = "draft"
+    PENDING_REVIEW = "pending_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    DISABLED = "disabled"
+
+class ValidationStatus(str, Enum):
+    VALID = "valid"
+    INVALID = "invalid"
+    UNVALIDATED = "unvalidated"
+
 class Question(BaseModel):
     id: str
     concept_id: str
@@ -38,9 +52,17 @@ class Question(BaseModel):
     options: List[QuestionOption] = []
     correct_answer: str
     tolerance: Optional[float] = None
-    worked_solution: List[str]
+    worked_solution: List[str] = []
     worked_solution_hi: Optional[List[str]] = None
     difficulty: float = 0.5  # 0.0 - 1.0
+    source: str = "curated"  # "curated" | "generated"
+    review_status: ContentReviewStatus = ContentReviewStatus.APPROVED
+    validation_status: ValidationStatus = ValidationStatus.VALID
+    rejection_reason: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[str] = None
+    content_version: int = 1
+    active: bool = True
 
 class BKTParameters(BaseModel):
     p_init: float = 0.20       # Prior probability student knows concept L_0
@@ -57,14 +79,36 @@ class StudentMastery(BaseModel):
     correct_count: int = 0
     consecutive_correct: int = 0
 
+# Feature A: Confidence-Based Learning Insights
+class ConfidenceLevel(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+class ConfidencePattern(str, Enum):
+    OVERCONFIDENCE = "overconfidence"
+    UNDERCONFIDENCE = "underconfidence"
+    CONSCIOUS_UNCERTAINTY = "conscious_uncertainty"
+    MASTERY_ALIGNMENT = "mastery_alignment"
+    UNSPECIFIED = "unspecified"
+
+class ConfidenceInsight(BaseModel):
+    pattern: ConfidencePattern
+    level: Optional[ConfidenceLevel] = None
+    title: str
+    message: str
+    suggested_action: str
+
 class AnswerSubmission(BaseModel):
     student_id: str
     question_id: str
     student_answer: str
     response_time_seconds: float
+    confidence: Optional[ConfidenceLevel] = None  # Feature A: Optional confidence
     free_text_reasoning: Optional[str] = None
     assessment_id: Optional[str] = None
     is_reassessment: bool = False
+    idempotency_key: Optional[str] = None
 
 class AnswerEvaluation(BaseModel):
     is_correct: bool
@@ -80,6 +124,7 @@ class AnswerEvaluation(BaseModel):
     is_mastered: bool
     response_time_seconds: float
     time_signal: str  # "fast", "normal", "prolonged"
+    confidence_insight: Optional[ConfidenceInsight] = None  # Feature A
 
 class StepSubmission(BaseModel):
     problem_statement: str
@@ -126,6 +171,70 @@ class RecoveryScoreReport(BaseModel):
     post_attempts: int
     status: str
     disclaimer: str = "This metric is an indicator of targeted instructional progress and is not a standardized psychometric measurement."
+
+# Feature B: Spaced Revision & Intelligent Practice Scheduling
+class RevisionStatus(str, Enum):
+    DUE = "due"
+    SCHEDULED = "scheduled"
+    MASTERED = "mastered"
+
+class RevisionSchedule(BaseModel):
+    id: str
+    student_id: str
+    concept_id: str
+    concept_title: str
+    last_practiced_at: str
+    next_review_due_at: str
+    interval_days: int
+    repetitions_count: int
+    mastery_probability: float
+    status: RevisionStatus
+    recommendation_rationale: str
+
+# Feature C: Explainable Recommendations
+class RecommendationReasonCode(str, Enum):
+    PREREQUISITE_MASTERY_LOW = "prerequisite_mastery_low"
+    RECENT_ERROR_PATTERN = "recent_error_pattern"
+    MASTERY_UNCERTAIN = "mastery_uncertain"
+    READY_FOR_HARDER_QUESTION = "ready_for_harder_question"
+    SPACED_REVIEW_DUE = "spaced_review_due"
+
+class Recommendation(BaseModel):
+    activity_type: str  # "question" | "lesson" | "prerequisite_review" | "spaced_revision"
+    concept_id: str
+    concept_title: str
+    question_id: Optional[str] = None
+    reason_code: RecommendationReasonCode
+    explanation: str
+    evidence_summary: Optional[str] = None
+
+# Feature F: Student Feedback & Content Reporting
+class ContentReportReason(str, Enum):
+    INCORRECT_ANSWER = "incorrect_answer"
+    CONFUSING_EXPLANATION = "confusing_explanation"
+    DUPLICATE_QUESTION = "duplicate_question"
+    TYPO_OR_FORMATTING = "typo_or_formatting"
+    OTHER = "other"
+
+class ContentReportStatus(str, Enum):
+    PENDING = "pending"
+    RESOLVED = "resolved"
+    DISMISSED = "dismissed"
+
+class ContentReport(BaseModel):
+    id: str
+    student_id: str
+    student_name: Optional[str] = None
+    content_id: str
+    content_type: str = "question"
+    content_version: int = 1
+    reason: ContentReportReason
+    comment: str
+    status: ContentReportStatus = ContentReportStatus.PENDING
+    created_at: str
+    resolved_at: Optional[str] = None
+    resolved_by: Optional[str] = None
+    resolution_notes: Optional[str] = None
 
 class ClassroomAnalytics(BaseModel):
     total_students: int

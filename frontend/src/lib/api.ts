@@ -36,6 +36,25 @@ export interface Question {
   worked_solution: string[];
   worked_solution_hi?: string[];
   difficulty: number;
+  source?: string;
+  review_status?: string;
+}
+
+export type ConfidenceLevel = 'low' | 'medium' | 'high';
+
+export type ConfidencePattern =
+  | 'overconfidence'
+  | 'underconfidence'
+  | 'conscious_uncertainty'
+  | 'mastery_alignment'
+  | 'uncalibrated';
+
+export interface ConfidenceInsight {
+  confidence: ConfidenceLevel;
+  is_correct: boolean;
+  pattern: ConfidencePattern;
+  insight_message: string;
+  actionable_guidance: string;
 }
 
 export interface AnswerEvaluation {
@@ -51,6 +70,7 @@ export interface AnswerEvaluation {
   is_mastered: boolean;
   response_time_seconds: number;
   time_signal: string;
+  confidence_insight?: ConfidenceInsight;
 }
 
 export interface StepMistakeAnalysis {
@@ -129,6 +149,68 @@ export interface ClassroomAnalytics {
   }>;
 }
 
+export interface RevisionSchedule {
+  id: string;
+  student_id: string;
+  concept_id: string;
+  concept_title: string;
+  last_practiced_at: string;
+  next_review_due_at: string;
+  interval_days: number;
+  repetitions_count: number;
+  mastery_probability: number;
+  status: 'due' | 'scheduled' | 'mastered';
+  recommendation_rationale: string;
+}
+
+export interface Recommendation {
+  activity_type: string;
+  concept_id: string;
+  concept_title: string;
+  question_id?: string;
+  reason_code: 'prerequisite_mastery_low' | 'recent_error_pattern' | 'mastery_uncertain' | 'ready_for_harder_question' | 'spaced_review_due';
+  explanation: string;
+  evidence_summary: string;
+}
+
+export interface ContentReviewItem {
+  id: string;
+  concept_id: string;
+  prompt: string;
+  correct_answer: string;
+  options: QuestionOption[];
+  difficulty: number;
+  source: string;
+  review_status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'disabled';
+  validation_status: string;
+  active: boolean;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+}
+
+export interface ContentReport {
+  id: string;
+  question_id: string;
+  student_id: string;
+  category: 'incorrect_answer_key' | 'ambiguous_wording' | 'typo_or_formatting' | 'pedagogically_unclear' | 'technical_glitch';
+  description: string;
+  created_at: string;
+  resolved: boolean;
+  resolution_action?: string;
+  resolution_notes?: string;
+}
+
+export interface StudentConfidenceSummary {
+  student_id: string;
+  total_attempts_with_confidence: number;
+  overconfidence_count: number;
+  underconfidence_count: number;
+  mastery_alignment_count: number;
+  calibration_score: number;
+  recommendations: string[];
+}
+
 export const api = {
   getStatus: async () => {
     const res = await fetch(`${API_BASE}/status`);
@@ -172,6 +254,7 @@ export const api = {
     student_answer: string;
     response_time_seconds: number;
     free_text_reasoning?: string;
+    confidence?: ConfidenceLevel;
     is_reassessment?: boolean;
   }): Promise<AnswerEvaluation> => {
     const res = await fetch(`${API_BASE}/diagnostic/submit`, {
@@ -235,6 +318,118 @@ export const api = {
   getStudentsSummary: async (): Promise<Record<string, unknown>[]> => {
     const res = await fetch(`${API_BASE}/analytics/students`);
     if (!res.ok) throw new Error('Failed to fetch students summary');
+    return res.json();
+  },
+
+  // Feature B: Spaced Revision
+  getRevisionSchedule: async (studentId: string = 'student_alex'): Promise<{
+    due_revisions: RevisionSchedule[];
+    upcoming_revisions: RevisionSchedule[];
+    total_tracked: number;
+    mastered_count: number;
+  }> => {
+    const res = await fetch(`${API_BASE}/revision/schedule?student_id=${studentId}`);
+    if (!res.ok) throw new Error('Failed to fetch revision schedule');
+    return res.json();
+  },
+
+  completeRevision: async (
+    conceptId: string,
+    studentId: string = 'student_alex',
+    isCorrect: boolean = true
+  ): Promise<{ success: boolean; next_interval_days: number; next_due_at: string; rationale: string }> => {
+    const res = await fetch(`${API_BASE}/revision/${conceptId}/complete?student_id=${studentId}&is_correct=${isCorrect}`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error('Failed to complete revision');
+    return res.json();
+  },
+
+  // Feature C: Explainable Recommendations
+  getExplainableRecommendation: async (
+    studentId: string = 'student_alex',
+    targetConceptId?: string
+  ): Promise<Recommendation> => {
+    const url = targetConceptId
+      ? `${API_BASE}/recommendations/next?student_id=${studentId}&target_concept_id=${targetConceptId}`
+      : `${API_BASE}/recommendations/next?student_id=${studentId}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch recommendation');
+    return res.json();
+  },
+
+  // Feature D: Teacher Content Review
+  getContentReviews: async (status?: string): Promise<ContentReviewItem[]> => {
+    const url = status
+      ? `${API_BASE}/teacher/content-reviews?status=${status}`
+      : `${API_BASE}/teacher/content-reviews`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch content reviews');
+    return res.json();
+  },
+
+  processContentReview: async (
+    questionId: string,
+    data: {
+      action: 'approve' | 'reject' | 'disable' | 'request_review';
+      reviewer_id?: string;
+      reviewer_name?: string;
+      reason?: string;
+    }
+  ): Promise<{ success: boolean; message: string; question?: ContentReviewItem }> => {
+    const res = await fetch(`${API_BASE}/teacher/content-reviews/${questionId}/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to process content review');
+    return res.json();
+  },
+
+  // Feature F: Content Reporting
+  submitReport: async (data: {
+    question_id: string;
+    student_id: string;
+    category: string;
+    description: string;
+  }): Promise<{ success: boolean; report_id: string; message: string }> => {
+    const res = await fetch(`${API_BASE}/reports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to submit report');
+    return res.json();
+  },
+
+  getTeacherReports: async (): Promise<ContentReport[]> => {
+    const res = await fetch(`${API_BASE}/teacher/reports`);
+    if (!res.ok) throw new Error('Failed to fetch teacher reports');
+    return res.json();
+  },
+
+  resolveTeacherReport: async (
+    reportId: string,
+    data: {
+      action: 'quarantine' | 'dismiss' | 'edit';
+      notes?: string;
+      reviewer_id?: string;
+    }
+  ): Promise<{ success: boolean; report: ContentReport }> => {
+    const res = await fetch(`${API_BASE}/teacher/reports/${reportId}/resolve`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Failed to resolve report');
+    return res.json();
+  },
+
+  getStudentConfidenceSummary: async (
+    studentId: string = 'student_alex'
+  ): Promise<StudentConfidenceSummary> => {
+    const res = await fetch(`${API_BASE}/analytics/student/confidence?student_id=${studentId}`);
+    if (!res.ok) throw new Error('Failed to fetch confidence analytics');
     return res.json();
   }
 };

@@ -1,0 +1,152 @@
+[
+  {
+    "id": "ans-01",
+    "conceptId": "c-basic-algebra",
+    "questionPrompt": "Simplify: 3(x + 4) - 2x",
+    "expectedAnswer": "x + 12",
+    "submittedAnswer": "x + 12",
+    "isCorrect": true,
+    "expectedCategory": "insufficient_evidence",
+    "description": "Standard correct response"
+  },
+  {
+    "id": "ans-02",
+    "conceptId": "c-basic-algebra",
+    "questionPrompt": "Simplify: 3(x + 4) - 2x",
+    "expectedAnswer": "x + 12",
+    "submittedAnswer": "x + 4",
+    "isCorrect": false,
+    "expectedCategory": "concept_misunderstanding",
+    "description": "Incomplete distribution error: forgot to multiply 4 by 3"
+  },
+  {
+    "id": "ans-03",
+    "conceptId": "c-basic-algebra",
+    "questionPrompt": "Simplify: 3(x + 4) - 2x",
+    "expectedAnswer": "x + 12",
+    "submittedAnswer": "5x + 12",
+    "isCorrect": false,
+    "expectedCategory": "arithmetic_or_sign_error",
+    "description": "Added linear terms instead of subtracting: 3x + 2x = 5x"
+  },
+  {
+    "id": "ans-04",
+    "conceptId": "c-basic-algebra",
+    "questionPrompt": "Simplify: 3(x + 4) - 2x",
+    "expectedAnswer": "x + 12",
+    "submittedAnswer": "x + 11",
+    "isCorrect": false,
+    "expectedCategory": "possible_typo",
+    "description": "Near-miss single character slip"
+  },
+  {
+    "id": "ans-05",
+    "conceptId": "c-basic-algebra",
+    "questionPrompt": "Simplify: 3(x + 4) - 2x",
+    "expectedAnswer": "x + 12",
+    "submittedAnswer": "",
+    "isCorrect": false,
+    "expectedCategory": "insufficient_evidence",
+    "description": "Blank answer must abstain from diagnosing misconception"
+  },
+  {
+    "id": "ans-06",
+    "conceptId": "c-basic-algebra",
+    "questionPrompt": "Simplify: 3(x + 4) - 2x",
+    "expectedAnswer": "x + 12",
+    "submittedAnswer": "100",
+    "isCorrect": false,
+    "expectedCategory": "insufficient_evidence",
+    "description": "Completely arbitrary number with no matching pattern: must return insufficient_evidence"
+  },
+  {
+    "id": "ans-07",
+    "conceptId": "c-factorization",
+    "questionPrompt": "Factor completely: x^2 - 9",
+    "expectedAnswer": "(x - 3)(x + 3)",
+    "submittedAnswer": "(x - 3)(x + 3)",
+    "isCorrect": true,
+    "expectedCategory": "insufficient_evidence",
+    "description": "Correct difference of squares factorization"
+  },
+  {
+    "id": "ans-08",
+    "conceptId": "c-factorization",
+    "questionPrompt": "Factor completely: x^2 - 9",
+    "expectedAnswer": "(x - 3)(x + 3)",
+    "submittedAnswer": "(x - 3)^2",
+    "isCorrect": false,
+    "expectedCategory": "formula_confusion",
+    "description": "Classic difference of squares vs perfect square confusion"
+  },
+  {
+    "id": "ans-09",
+    "conceptId": "c-factorization",
+    "questionPrompt": "Factor completely: x^2 - 9",
+    "expectedAnswer": "(x - 3)(x + 3)",
+    "submittedAnswer": "(x + 3)^2",
+    "isCorrect": false,
+    "expectedCategory": "arithmetic_or_sign_error",
+    "description": "Sign error producing +9 constant instead of -9"
+  },
+  {
+    "id": "ans-10",
+    "conceptId": "c-factorization",
+    "questionPrompt": "Factor completely: x^2 - 9",
+    "expectedAnswer": "(x - 3)(x + 3)",
+    "submittedAnswer": "x(x - 9)",
+    "isCorrect": false,
+    "expectedCategory": "insufficient_evidence",
+    "description": "Unmatched factoring attempt: abstains safely"
+  },
+  {
+    "id": "ans-11",
+    "conceptId": "c-factorization",
+    "questionPrompt": "Factor the trinomial: x^2 + 5x + 6",
+    "expectedAnswer": "(x + 2)(x + 3)",
+    "submittedAnswer": "(x + 2)(x + 3)",
+    "isCorrect": true,
+    "expectedCategory": "insufficient_evidence",
+    "description": "Correct binomial factoring"
+  },
+  {
+    "id": "ans-12",
+    "conceptId": "c-factorization",
+    "questionPrompt": "Factor the trinomial: x^2 + 5x + 6",
+    "expectedAnswer": "(x + 2)(x + 3)",
+    "submittedAnswer": "(x + 1)(x + 6)",
+    "isCorrect": false,
+    "expectedCategory": "arithmetic_or_sign_error",
+    "description": "Factors sum to 7 rather than 5"
+  },
+  {
+    "id": "ans-13",
+    "conceptId": "c-quadratic-equations",
+    "questionPrompt": "Solve for x: x^2 - 5x + 6 = 0",
+    "expectedAnswer": "x = 2, 3",
+    "submittedAnswer": "x = 2, 3",
+    "isCorrect": true,
+    "expectedCategory": "insufficient_evidence",
+    "description": "Correct root calculation"
+  },
+  {
+    "id": "ans-14",
+    "conceptId": "c-quadratic-equations",
+    "questionPrompt": "Solve for x: x^2 - 5x + 6 = 0",
+    "expectedAnswer": "x = 2, 3",
+    "submittedAnswer": "x = -2, -3",
+    "isCorrect": false,
+    "expectedCategory": "arithmetic_or_sign_error",
+    "description": "Zero product sign inversion when solving factors"
+  },
+  {
+    "id": "ans-15",
+    "conceptId": "c-quadratic-equations",
+    "questionPrompt": "Solve for x: x^2 - 5x + 6 = 0",
+    "expectedAnswer": "x = 2, 3",
+    "submittedAnswer": "x = 5",
+    "isCorrect": false,
+    "expectedCategory": "insufficient_evidence",
+    "description": "Incomplete or guessed single root: insufficient evidence to diagnose"
+  }
+]

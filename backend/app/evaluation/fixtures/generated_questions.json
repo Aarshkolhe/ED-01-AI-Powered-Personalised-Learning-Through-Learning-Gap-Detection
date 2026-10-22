@@ -1,0 +1,57 @@
+[
+  {
+    "id": "eval-gen-01",
+    "conceptId": "c-factorization",
+    "prompt": "Factor completely: x^2 - 25",
+    "options": ["(x - 5)(x + 5)", "(x - 5)^2", "(x + 5)^2", "(x - 25)(x + 1)"],
+    "expectedAnswer": "(x - 5)(x + 5)",
+    "explanation": "Difference of squares formula: a^2 - b^2 = (a - b)(a + b)",
+    "difficulty": 2,
+    "expectedValidation": "valid",
+    "description": "Standard valid generated multiple choice question"
+  },
+  {
+    "id": "eval-gen-02",
+    "conceptId": "c-factorization",
+    "prompt": "Factor: x^2 - 36",
+    "options": ["(x - 6)^2", "(x + 6)^2", "(x - 36)(x + 1)"],
+    "expectedAnswer": "(x - 6)(x + 6)",
+    "explanation": "Difference of squares",
+    "difficulty": 2,
+    "expectedValidation": "invalid",
+    "description": "Answer consistency failure: expectedAnswer is NOT present in options list"
+  },
+  {
+    "id": "eval-gen-03",
+    "conceptId": "c-factorization",
+    "prompt": "",
+    "options": ["Option A", "Option B"],
+    "expectedAnswer": "Option A",
+    "explanation": "Missing prompt",
+    "difficulty": 2,
+    "expectedValidation": "invalid",
+    "description": "Schema violation: prompt cannot be empty"
+  },
+  {
+    "id": "eval-gen-04",
+    "conceptId": "c-factorization",
+    "prompt": "Factor: x^2 - 49",
+    "options": ["(x - 7)(x + 7)", "(x - 7)^2"],
+    "expectedAnswer": "(x - 7)(x + 7)",
+    "explanation": "Valid explanation",
+    "difficulty": 99,
+    "expectedValidation": "invalid",
+    "description": "Difficulty out of range: difficulty 99 exceeds allowed maximum (5)"
+  },
+  {
+    "id": "eval-gen-05",
+    "conceptId": "c-factorization",
+    "prompt": "Factor completely: x^2 - 25",
+    "options": ["(x - 5)(x + 5)", "(x - 5)^2", "(x + 5)^2", "(x - 25)(x + 1)"],
+    "expectedAnswer": "(x - 5)(x + 5)",
+    "explanation": "Duplicate of question eval-gen-01",
+    "difficulty": 2,
+    "expectedValidation": "duplicate",
+    "description": "Duplicate question detector check"
+  }
+]

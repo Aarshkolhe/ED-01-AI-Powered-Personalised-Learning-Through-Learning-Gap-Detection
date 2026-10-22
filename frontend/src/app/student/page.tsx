@@ -7,12 +7,20 @@ import { RecoveryPathView } from '@/components/RecoveryPathView';
 import { RecoveryScoreCard } from '@/components/RecoveryScoreCard';
 import { StepMistakeDetector } from '@/components/StepMistakeDetector';
 import { MisconceptionGenerator } from '@/components/MisconceptionGenerator';
+import { SpacedRevisionPanel } from '@/components/SpacedRevisionPanel';
 import { useApp } from '@/lib/context';
-import { Network, Activity, Route, TrendingUp, Sparkles, AlertCircle } from 'lucide-react';
+import {
+  Network,
+  Activity,
+  Route,
+  TrendingUp,
+  Sparkles,
+  RotateCcw
+} from 'lucide-react';
 
 export default function StudentPortalPage() {
   const { activeStudentId, t } = useApp();
-  const [activeTab, setActiveTab] = useState<'diagnostic' | 'graph' | 'recovery' | 'steps' | 'generator'>('diagnostic');
+  const [activeTab, setActiveTab] = useState<'diagnostic' | 'revision' | 'graph' | 'recovery' | 'steps' | 'generator'>('diagnostic');
   const [focalConcept, setFocalConcept] = useState<string>('fraction_addition_unlike');
   const [isReassessment, setIsReassessment] = useState<boolean>(false);
 
@@ -45,6 +53,19 @@ export default function StudentPortalPage() {
             >
               <Activity className="w-3.5 h-3.5" />
               <span>{t('Diagnostic Quiz', 'निदानात्मक क्विज़')}</span>
+            </button>
+
+            {/* Feature B Tab: Spaced Revision */}
+            <button
+              onClick={() => setActiveTab('revision')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
+                activeTab === 'revision'
+                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{t('Spaced Revision', 'स्पेसड रिवीजन')}</span>
             </button>
 
             <button
@@ -100,7 +121,7 @@ export default function StudentPortalPage() {
         {/* Content Tabs */}
         {activeTab === 'diagnostic' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <DiagnosticQuiz
                 conceptId={focalConcept}
                 isReassessment={isReassessment}
@@ -109,7 +130,28 @@ export default function StudentPortalPage() {
             </div>
             <div className="space-y-6">
               <RecoveryScoreCard conceptId={focalConcept} />
+              <SpacedRevisionPanel
+                studentId={activeStudentId}
+                onSelectConceptForPractice={(cid) => {
+                  setFocalConcept(cid);
+                  setIsReassessment(false);
+                }}
+              />
             </div>
+          </div>
+        )}
+
+        {/* Feature B: Full Spaced Revision View */}
+        {activeTab === 'revision' && (
+          <div className="max-w-4xl mx-auto space-y-6">
+            <SpacedRevisionPanel
+              studentId={activeStudentId}
+              onSelectConceptForPractice={(cid) => {
+                setFocalConcept(cid);
+                setIsReassessment(false);
+                setActiveTab('diagnostic');
+              }}
+            />
           </div>
         )}
 

@@ -1,9 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api, Question, AnswerEvaluation } from '@/lib/api';
+import { api, Question, AnswerEvaluation, ConfidenceLevel, Recommendation } from '@/lib/api';
 import { useApp } from '@/lib/context';
-import { CheckCircle2, XCircle, ArrowRight, Clock, AlertTriangle, Sparkles, RefreshCw } from 'lucide-react';
+import { ConfidenceInsightCard } from '@/components/ConfidenceInsightCard';
+import { ContentReportModal } from '@/components/ContentReportModal';
+import {
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+  Clock,
+  Sparkles,
+  Flag,
+  Lightbulb,
+  Info
+} from 'lucide-react';
 
 interface DiagnosticQuizProps {
   conceptId?: string;
@@ -20,25 +31,34 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<string>('');
+  const [selectedConfidence, setSelectedConfidence] = useState<ConfidenceLevel | undefined>(undefined);
   const [freeTextReasoning, setFreeTextReasoning] = useState<string>('');
   const [startTime, setStartTime] = useState<number>(0);
   const [evaluation, setEvaluation] = useState<AnswerEvaluation | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
-    const loadQuestions = async () => {
+    const loadQuizData = async () => {
       try {
         setLoading(true);
-        const data = isReassessment 
-          ? await api.getReassessmentQuestions(conceptId)
-          : await api.getDiagnosticQuestions(conceptId);
+        const [qData, recData] = await Promise.all([
+          isReassessment
+            ? api.getReassessmentQuestions(conceptId)
+            : api.getDiagnosticQuestions(conceptId),
+          api.getExplainableRecommendation(activeStudentId, conceptId).catch(() => null)
+        ]);
+
         if (mounted) {
-          setQuestions(data);
+          setQuestions(qData);
+          setRecommendation(recData);
           setCurrentIndex(0);
           setEvaluation(null);
           setSelectedOption('');
+          setSelectedConfidence(undefined);
           setStartTime(Date.now());
         }
       } catch (err) {
@@ -47,9 +67,11 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
         if (mounted) setLoading(false);
       }
     };
-    loadQuestions();
-    return () => { mounted = false; };
-  }, [conceptId, isReassessment]);
+    loadQuizData();
+    return () => {
+      mounted = false;
+    };
+  }, [conceptId, isReassessment, activeStudentId]);
 
   const handleSubmit = async () => {
     if (!selectedOption || submitting) return;
@@ -64,6 +86,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
         student_answer: selectedOption,
         response_time_seconds: Math.round(duration * 10) / 10,
         free_text_reasoning: freeTextReasoning,
+        confidence: selectedConfidence,
         is_reassessment: isReassessment
       });
       setEvaluation(evalResult);
@@ -79,6 +102,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
       setCurrentIndex(currentIndex + 1);
       setEvaluation(null);
       setSelectedOption('');
+      setSelectedConfidence(undefined);
       setFreeTextReasoning('');
       setStartTime(Date.now());
     } else {
@@ -90,7 +114,9 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
     return (
       <div className="p-12 text-center bg-slate-900/50 rounded-2xl border border-slate-800">
         <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-slate-400 mt-3">{t('Loading assessment items...', 'मूल्यांकन प्रश्न लोड हो रहे हैं...')}</p>
+        <p className="text-xs text-slate-400 mt-3">
+          {t('Loading assessment items...', 'मूल्यांकन प्रश्न लोड हो रहे हैं...')}
+        </p>
       </div>
     );
   }
@@ -98,7 +124,9 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
   if (questions.length === 0) {
     return (
       <div className="p-8 text-center bg-slate-900 rounded-2xl border border-slate-800">
-        <p className="text-sm text-slate-300">{t('No diagnostic questions found for this topic.', 'इस विषय के लिए कोई प्रश्न नहीं मिला।')}</p>
+        <p className="text-sm text-slate-300">
+          {t('No diagnostic questions found for this topic.', 'इस विषय के लिए कोई प्रश्न नहीं मिला।')}
+        </p>
       </div>
     );
   }
@@ -107,7 +135,27 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
   const promptText = (language === 'hi' && currentQ.prompt_hi) ? currentQ.prompt_hi : currentQ.prompt;
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+      {/* Feature C: Explainable Recommendation Badge */}
+      {recommendation && (
+        <div className="mb-4 p-3 bg-teal-950/30 border border-teal-500/30 rounded-xl text-xs flex items-start space-x-2.5">
+          <Info className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-teal-300 uppercase tracking-wider text-[10px]">
+                Why this activity was selected:
+              </span>
+              <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-teal-500/20 text-teal-200">
+                {recommendation.reason_code}
+              </span>
+            </div>
+            <p className="text-slate-300 mt-1 text-xs">
+              {recommendation.explanation}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Quiz Progress Header */}
       <div className="flex items-center justify-between pb-4 border-b border-slate-800 text-xs">
         <div className="flex items-center space-x-2">
@@ -117,6 +165,7 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
           <span className="text-slate-500">•</span>
           <span className="text-slate-400">{currentQ.concept_id}</span>
         </div>
+
         <div className="flex items-center space-x-3 text-slate-400 font-medium">
           <span>Question {currentIndex + 1} of {questions.length}</span>
           <div className="w-24 bg-slate-800 rounded-full h-2 overflow-hidden">
@@ -125,6 +174,15 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
               style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
             />
           </div>
+
+          {/* Feature F: Report Issue Button */}
+          <button
+            onClick={() => setReportModalOpen(true)}
+            title="Report an issue with this question"
+            className="p-1 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-rose-400 transition-colors"
+          >
+            <Flag className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
@@ -164,6 +222,52 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
           );
         })}
       </div>
+
+      {/* Feature A: Optional Confidence Level Selector */}
+      {!evaluation && (
+        <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+              <span>{t('How confident do you feel about this answer? (Optional)', 'इस उत्तर पर आपका विश्वास कितना है? (वैकल्पिक)')}</span>
+            </label>
+            {selectedConfidence && (
+              <button
+                type="button"
+                onClick={() => setSelectedConfidence(undefined)}
+                className="text-[11px] text-slate-500 hover:text-slate-300"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { val: 'low' as ConfidenceLevel, label: 'Low', desc: 'Just guessing / unsure', color: 'hover:border-purple-500/50' },
+              { val: 'medium' as ConfidenceLevel, label: 'Medium', desc: 'Somewhat confident', color: 'hover:border-blue-500/50' },
+              { val: 'high' as ConfidenceLevel, label: 'High', desc: 'Very certain', color: 'hover:border-emerald-500/50' }
+            ].map((lvl) => {
+              const active = selectedConfidence === lvl.val;
+              return (
+                <button
+                  key={lvl.val}
+                  type="button"
+                  onClick={() => setSelectedConfidence(active ? undefined : lvl.val)}
+                  className={`p-2.5 rounded-xl border text-center transition-all ${
+                    active
+                      ? 'bg-teal-500/20 border-teal-500 text-teal-300 shadow-md shadow-teal-500/10'
+                      : `bg-slate-950/60 border-slate-800 text-slate-400 ${lvl.color}`
+                  }`}
+                >
+                  <div className="text-xs font-bold">{lvl.label}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5 truncate">{lvl.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Free-text reasoning field */}
       {!evaluation && (
@@ -255,6 +359,13 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
               </div>
             )}
 
+            {/* Feature A: Confidence-Based Learning Insight Card */}
+            {evaluation.confidence_insight && (
+              <div className="mt-3">
+                <ConfidenceInsightCard insight={evaluation.confidence_insight} />
+              </div>
+            )}
+
             {/* BKT Mastery Update Metrics */}
             <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
               <div>
@@ -275,7 +386,15 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => setReportModalOpen(true)}
+              className="text-xs text-slate-500 hover:text-rose-400 transition-colors flex items-center space-x-1"
+            >
+              <Flag className="w-3.5 h-3.5" />
+              <span>Report an issue with this question</span>
+            </button>
+
             <button
               onClick={handleNext}
               className="px-6 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition-colors flex items-center space-x-2"
@@ -290,6 +409,14 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
           </div>
         </div>
       )}
+
+      {/* Feature F: Content Report Modal */}
+      <ContentReportModal
+        questionId={currentQ.id}
+        studentId={activeStudentId}
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+      />
     </div>
   );
 };
