@@ -13,11 +13,14 @@ from app.models.schemas import (
     ConfidenceLevel
 )
 from app.data.curriculum import CONCEPTS, SEED_QUESTIONS, MISCONCEPTIONS
+from app.services.diagnostic_service import diagnostic_service
 
 class DataRepository:
     def __init__(self):
         self.concepts: Dict[str, Concept] = {c.id: c for c in CONCEPTS}
         self.questions: Dict[str, Question] = {q.id: q for q in SEED_QUESTIONS}
+        for f_q in diagnostic_service.follow_up_bank.values():
+            self.questions[f_q.id] = f_q
         
         # Student Mastery Map: (student_id, concept_id) -> StudentMastery
         self.mastery_records: Dict[str, Dict[str, StudentMastery]] = {}

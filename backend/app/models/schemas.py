@@ -30,6 +30,16 @@ class QuestionOption(BaseModel):
     misconception_explanation: Optional[str] = None
     misconception_explanation_hi: Optional[str] = None
 
+# Spec §18.1: Controlled Error Taxonomy
+class ErrorTaxonomyCategory(str, Enum):
+    PREREQUISITE_GAP = "prerequisite_gap"
+    CONCEPT_MISUNDERSTANDING = "concept_misunderstanding"
+    FORMULA_CONFUSION = "formula_confusion"
+    ARITHMETIC_OR_SIGN_ERROR = "arithmetic_or_sign_error"
+    QUESTION_MISREAD = "question_misread"
+    POSSIBLE_TYPO = "possible_typo"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+
 # Feature D: Teacher Review of AI-Generated Content States
 class ContentReviewStatus(str, Enum):
     DRAFT = "draft"
@@ -42,6 +52,25 @@ class ValidationStatus(str, Enum):
     VALID = "valid"
     INVALID = "invalid"
     UNVALIDATED = "unvalidated"
+
+# Spec §7 & §20: Student-Safe Question Representation (Omitted correct answers before submission)
+class StudentQuestionOption(BaseModel):
+    id: str
+    text: str
+    text_hi: Optional[str] = None
+
+class StudentQuestion(BaseModel):
+    id: str
+    concept_id: str
+    prompt: str
+    prompt_hi: Optional[str] = None
+    question_type: str = "multiple_choice"
+    options: List[StudentQuestionOption] = []
+    difficulty: float = 0.5
+    source: str = "curated"
+    review_status: ContentReviewStatus = ContentReviewStatus.APPROVED
+    is_follow_up: bool = False
+    parent_question_id: Optional[str] = None
 
 class Question(BaseModel):
     id: str
@@ -63,12 +92,41 @@ class Question(BaseModel):
     reviewed_at: Optional[str] = None
     content_version: int = 1
     active: bool = True
+    competing_misconceptions: Optional[List[str]] = None
+    is_follow_up: bool = False
+    parent_question_id: Optional[str] = None
+    error_taxonomy: Optional[ErrorTaxonomyCategory] = None
+
+    def to_student_view(self) -> StudentQuestion:
+        return StudentQuestion(
+            id=self.id,
+            concept_id=self.concept_id,
+            prompt=self.prompt,
+            prompt_hi=self.prompt_hi,
+            question_type=self.question_type,
+            options=[
+                StudentQuestionOption(id=o.id, text=o.text, text_hi=o.text_hi)
+                for o in self.options
+            ],
+            difficulty=self.difficulty,
+            source=self.source,
+            review_status=self.review_status,
+            is_follow_up=self.is_follow_up,
+            parent_question_id=self.parent_question_id
+        )
 
 class BKTParameters(BaseModel):
     p_init: float = 0.20       # Prior probability student knows concept L_0
     p_transit: float = 0.15    # Probability of learning between opportunities T
     p_guess: float = 0.20      # Probability of guessing correctly without knowing G
     p_slip: float = 0.10       # Probability of slipping (incorrect despite knowing) S
+
+class BKTModelVersion(BaseModel):
+    version: str = "1.0.0"
+    description: str = "Standard 4-parameter Bayesian Knowledge Tracing with prototype Dirichlet defaults"
+    parameters: BKTParameters = BKTParameters()
+    is_calibrated: bool = False
+    calibration_notes: str = "Prototype defaults (P_L0=0.20, P_T=0.15, P_G=0.20, P_S=0.10). Model version 1.0.0."
 
 class StudentMastery(BaseModel):
     student_id: str
@@ -116,8 +174,10 @@ class AnswerEvaluation(BaseModel):
     concept_id: str
     detected_misconception: Optional[str] = None
     misconception_explanation: Optional[str] = None
+    error_taxonomy: Optional[ErrorTaxonomyCategory] = None  # Spec §18.1 taxonomy
     ai_feedback: Optional[str] = None
     step_analysis: Optional[Dict[str, Any]] = None
+    worked_solution: Optional[List[str]] = None
     previous_mastery: float
     updated_mastery: float
     mastery_change: float
@@ -125,6 +185,8 @@ class AnswerEvaluation(BaseModel):
     response_time_seconds: float
     time_signal: str  # "fast", "normal", "prolonged"
     confidence_insight: Optional[ConfidenceInsight] = None  # Feature A
+    needs_follow_up: bool = False  # Spec §19: Diagnostic follow-up
+    follow_up_question: Optional[StudentQuestion] = None
 
 class StepSubmission(BaseModel):
     problem_statement: str
@@ -236,10 +298,31 @@ class ContentReport(BaseModel):
     resolved_by: Optional[str] = None
     resolution_notes: Optional[str] = None
 
+# Spec §18.6: Fair Teacher Support Signals
+class SupportSignal(str, Enum):
+    NEEDS_SUPPORT = "Needs Support"
+    MONITORING = "Monitoring"
+    ON_TRACK = "On Track"
+    INSUFFICIENT_DATA = "Insufficient Data"
+
+class StudentSummary(BaseModel):
+    student_id: str
+    name: str
+    grade: str = "8th Grade"
+    average_mastery: float
+    support_signal: SupportSignal = SupportSignal.MONITORING
+    risk_level: str = "Moderate Risk"  # Kept for compatibility
+    evidence_summary: str
+    attempt_count: int
+    last_active: Optional[str] = None
+    active_gaps_count: int
+    active_gaps: List[str]
+
 class ClassroomAnalytics(BaseModel):
     total_students: int
     average_mastery: float
     at_risk_students_count: int
+    students_needing_support_count: int = 0
     top_misconceptions: List[Dict[str, Any]]
     concept_heatmaps: List[Dict[str, Any]]
     recent_attempts: List[Dict[str, Any]]

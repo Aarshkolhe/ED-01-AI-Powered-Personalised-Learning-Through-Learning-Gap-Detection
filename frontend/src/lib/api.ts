@@ -32,12 +32,14 @@ export interface Question {
   prompt_hi?: string;
   question_type: string;
   options: QuestionOption[];
-  correct_answer: string;
-  worked_solution: string[];
+  correct_answer?: string;
+  worked_solution?: string[];
   worked_solution_hi?: string[];
   difficulty: number;
   source?: string;
   review_status?: string;
+  is_follow_up?: boolean;
+  parent_question_id?: string;
 }
 
 export type ConfidenceLevel = 'low' | 'medium' | 'high';
@@ -63,7 +65,9 @@ export interface AnswerEvaluation {
   concept_id: string;
   detected_misconception?: string;
   misconception_explanation?: string;
+  error_taxonomy?: string;
   ai_feedback?: string;
+  worked_solution?: string[];
   previous_mastery: number;
   updated_mastery: number;
   mastery_change: number;
@@ -71,6 +75,8 @@ export interface AnswerEvaluation {
   response_time_seconds: number;
   time_signal: string;
   confidence_insight?: ConfidenceInsight;
+  needs_follow_up?: boolean;
+  follow_up_question?: Question;
 }
 
 export interface StepMistakeAnalysis {
@@ -125,6 +131,7 @@ export interface ClassroomAnalytics {
   total_students: number;
   average_mastery: number;
   at_risk_students_count: number;
+  students_needing_support_count?: number;
   top_misconceptions: Array<{
     misconception_id: string;
     name: string;
@@ -211,6 +218,22 @@ export interface StudentConfidenceSummary {
   recommendations: string[];
 }
 
+export type SupportSignal = 'Needs Support' | 'Monitoring' | 'On Track' | 'Insufficient Data';
+
+export interface StudentSummary {
+  student_id: string;
+  name: string;
+  grade: string;
+  average_mastery: number;
+  support_signal: SupportSignal;
+  risk_level: string;
+  evidence_summary: string;
+  attempt_count: number;
+  last_active?: string;
+  active_gaps_count: number;
+  active_gaps: string[];
+}
+
 export const api = {
   getStatus: async () => {
     const res = await fetch(`${API_BASE}/status`);
@@ -227,6 +250,24 @@ export const api = {
   getKnowledgeGraph: async (studentId: string = 'student_alex') => {
     const res = await fetch(`${API_BASE}/graph?student_id=${studentId}`);
     if (!res.ok) throw new Error('Failed to fetch knowledge graph');
+    return res.json();
+  },
+
+  validateKnowledgeGraph: async (): Promise<{
+    is_valid: boolean;
+    has_cycles: boolean;
+    cycles: string[][];
+    topological_order: string[];
+    total_concepts: number;
+  }> => {
+    const res = await fetch(`${API_BASE}/graph/validate`);
+    if (!res.ok) throw new Error('Failed to validate knowledge graph');
+    return res.json();
+  },
+
+  getBktConfig: async () => {
+    const res = await fetch(`${API_BASE}/model/bkt/config`);
+    if (!res.ok) throw new Error('Failed to fetch BKT config');
     return res.json();
   },
 
@@ -256,6 +297,7 @@ export const api = {
     free_text_reasoning?: string;
     confidence?: ConfidenceLevel;
     is_reassessment?: boolean;
+    idempotency_key?: string;
   }): Promise<AnswerEvaluation> => {
     const res = await fetch(`${API_BASE}/diagnostic/submit`, {
       method: 'POST',
@@ -315,7 +357,7 @@ export const api = {
     return res.json();
   },
 
-  getStudentsSummary: async (): Promise<Record<string, unknown>[]> => {
+  getStudentsSummary: async (): Promise<StudentSummary[]> => {
     const res = await fetch(`${API_BASE}/analytics/students`);
     if (!res.ok) throw new Error('Failed to fetch students summary');
     return res.json();

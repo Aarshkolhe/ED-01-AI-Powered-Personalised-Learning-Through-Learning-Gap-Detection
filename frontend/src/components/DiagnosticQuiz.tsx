@@ -39,6 +39,8 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState<boolean>(false);
+  const [followUpOption, setFollowUpOption] = useState<string>('');
+  const [submittingFollowUp, setSubmittingFollowUp] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -59,6 +61,8 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
           setEvaluation(null);
           setSelectedOption('');
           setSelectedConfidence(undefined);
+          setFollowUpOption('');
+          setSubmittingFollowUp(false);
           setStartTime(Date.now());
         }
       } catch (err) {
@@ -97,6 +101,26 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
     }
   };
 
+  const handleFollowUpSubmit = async () => {
+    if (!evaluation?.follow_up_question || !followUpOption || submittingFollowUp) return;
+    setSubmittingFollowUp(true);
+    try {
+      const followUpEval = await api.submitAnswer({
+        student_id: activeStudentId,
+        question_id: evaluation.follow_up_question.id,
+        student_answer: followUpOption,
+        response_time_seconds: 5.0,
+        is_reassessment: isReassessment
+      });
+      setEvaluation(followUpEval);
+      setFollowUpOption('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmittingFollowUp(false);
+    }
+  };
+
   const handleNext = () => {
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex(currentIndex + 1);
@@ -104,6 +128,8 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
       setSelectedOption('');
       setSelectedConfidence(undefined);
       setFreeTextReasoning('');
+      setFollowUpOption('');
+      setSubmittingFollowUp(false);
       setStartTime(Date.now());
     } else {
       if (onQuizComplete) onQuizComplete();
@@ -339,9 +365,16 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
             {/* Misconception details */}
             {evaluation.detected_misconception && (
               <div className="mt-3 p-3 bg-slate-950/70 rounded-lg border border-slate-800 text-xs">
-                <span className="text-amber-400 font-bold uppercase tracking-wider block mb-1">
-                  {t('Detected Trap:', 'पहचानी गई भूल:')} {evaluation.detected_misconception}
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-amber-400 font-bold uppercase tracking-wider">
+                    {t('Detected Trap:', 'पहचानी गई भूल:')} {evaluation.detected_misconception}
+                  </span>
+                  {evaluation.error_taxonomy && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">
+                      {evaluation.error_taxonomy}
+                    </span>
+                  )}
+                </div>
                 <p className="text-slate-300 font-medium">
                   {evaluation.misconception_explanation}
                 </p>
@@ -359,10 +392,83 @@ export const DiagnosticQuiz: React.FC<DiagnosticQuizProps> = ({
               </div>
             )}
 
+            {/* Step-by-Step Worked Solution (Spec §7, §20) */}
+            {evaluation.worked_solution && evaluation.worked_solution.length > 0 && (
+              <div className="mt-3 p-3 bg-slate-950/80 rounded-lg border border-teal-500/30 text-xs">
+                <span className="text-teal-400 font-bold uppercase tracking-wider block mb-1">
+                  {t('Step-by-Step Worked Solution:', 'चरण-दर-चरण हल:')}
+                </span>
+                <ul className="list-disc list-inside mt-1 space-y-1 text-slate-300 font-mono text-[11px]">
+                  {evaluation.worked_solution.map((step, idx) => (
+                    <li key={idx}>{step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Feature A: Confidence-Based Learning Insight Card */}
             {evaluation.confidence_insight && (
               <div className="mt-3">
                 <ConfidenceInsightCard insight={evaluation.confidence_insight} />
+              </div>
+            )}
+
+            {/* Diagnostic Follow-Up Question Disambiguation (Spec §18.3) */}
+            {evaluation.needs_follow_up && evaluation.follow_up_question && (
+              <div className="mt-4 p-4 bg-purple-950/30 border border-purple-500/40 rounded-xl">
+                <div className="flex items-center space-x-2 text-purple-300 font-bold text-xs uppercase tracking-wider mb-2">
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <span>{t('Diagnostic Follow-Up Clarification', 'निदानात्मक अनुवर्ती स्पष्टीकरण')}</span>
+                </div>
+                <p className="text-xs text-slate-300 mb-3">
+                  {t(
+                    "Let's check one quick follow-up to pinpoint your understanding and distinguish competing concepts:",
+                    "आपकी समझ को सटीकता से जानने के लिए एक छोटा अनुवर्ती प्रश्न:"
+                  )}
+                </p>
+                <div className="p-3 bg-slate-950/90 rounded-lg border border-purple-500/30 text-xs font-medium text-slate-200 mb-3">
+                  {evaluation.follow_up_question.prompt}
+                </div>
+                <div className="space-y-2 mb-3">
+                  {evaluation.follow_up_question.options.map((fOpt) => {
+                    const isFSelected = followUpOption === fOpt.text;
+                    return (
+                      <button
+                        key={fOpt.id}
+                        type="button"
+                        onClick={() => setFollowUpOption(fOpt.text)}
+                        disabled={submittingFollowUp}
+                        className={`w-full text-left p-3 rounded-lg border text-xs font-mono transition-all flex items-center justify-between ${
+                          isFSelected
+                            ? 'border-purple-500 bg-purple-500/20 text-purple-200 shadow-sm'
+                            : 'border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300'
+                        }`}
+                      >
+                        <span>{fOpt.text}</span>
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                            isFSelected ? 'border-purple-400 bg-purple-400 text-slate-950' : 'border-slate-600'
+                          }`}
+                        >
+                          {isFSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleFollowUpSubmit}
+                  disabled={!followUpOption || submittingFollowUp}
+                  className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs transition-all flex items-center space-x-2"
+                >
+                  {submittingFollowUp ? (
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span>{t('Submit Clarification', 'स्पष्टीकरण सबमिट करें')}</span>
+                  )}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
 

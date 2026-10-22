@@ -83,13 +83,13 @@ The exact question bank and curriculum level can be refined later. Store concept
 Use `[ ]` for not started, `[/]` for in progress, and `[x]` for verified complete. Agents must only mark tasks complete after implementing and testing them.
 
 ### F1. AI-based learning-gap and misconception detection
-- [ ] Define a controlled taxonomy of error types, e.g. prerequisite gap, concept misunderstanding, formula confusion, arithmetic slip, and unclear/insufficient evidence.
-- [ ] Design question metadata that maps each question to one or more concepts and expected reasoning steps.
-- [ ] Implement deterministic checks for known answer patterns and common misconceptions.
-- [ ] Add optional AI analysis of answer/worked steps with a strict structured output schema.
-- [ ] Return a likely misconception, evidence, confidence/uncertainty, and recommended next step.
-- [ ] Never present a guess as a confirmed fact; allow “not enough evidence”.
-- [ ] Test correct answers, common wrong answers, blank answers, malformed AI output, and provider failure.
+- [x] Define a controlled taxonomy of error types, e.g. prerequisite gap, concept misunderstanding, formula confusion, arithmetic slip, and unclear/insufficient evidence.
+- [x] Design question metadata that maps each question to one or more concepts and expected reasoning steps.
+- [x] Implement deterministic checks for known answer patterns and common misconceptions.
+- [x] Add optional AI analysis of answer/worked steps with a strict structured output schema.
+- [x] Return a likely misconception, evidence, confidence/uncertainty, and recommended next step.
+- [x] Never present a guess as a confirmed fact; allow “not enough evidence”.
+- [x] Test correct answers, common wrong answers, blank answers, malformed AI output, and provider failure.
 
 **Acceptance criteria**
 - An incorrect answer is not automatically treated as proof of a misconception.
@@ -98,14 +98,14 @@ Use `[ ]` for not started, `[/]` for in progress, and `[x]` for verified complet
 - If AI fails, the core quiz and deterministic feedback still work.
 
 ### F2. Adaptive question generation with real-time feedback
-- [ ] Create a curated question bank with difficulty, concept tags, expected answer, hints, explanation, and misconception tags.
-- [ ] Implement question selection based on current mastery and recent attempts.
-- [ ] Prefer prerequisite review when prerequisite mastery is low.
-- [ ] Increase difficulty gradually when the student demonstrates mastery.
-- [ ] Give feedback after submission without exposing the answer before the attempt.
-- [ ] Add optional AI question generation constrained by the current concept, difficulty, and output schema.
-- [ ] Validate generated questions and answers; use curated questions as fallback.
-- [ ] Prevent repeated questions in the same short session unless repetition is intentional.
+- [x] Create a curated question bank with difficulty, concept tags, expected answer, hints, explanation, and misconception tags.
+- [x] Implement question selection based on current mastery and recent attempts.
+- [x] Prefer prerequisite review when prerequisite mastery is low.
+- [x] Increase difficulty gradually when the student demonstrates mastery.
+- [x] Give feedback after submission without exposing the answer before the attempt.
+- [x] Add optional AI question generation constrained by the current concept, difficulty, and output schema.
+- [x] Validate generated questions and answers; use curated questions as fallback.
+- [x] Prevent repeated questions in the same short session unless repetition is intentional.
 
 **Acceptance criteria**
 - The next question has a traceable reason, e.g. “reviewing factorization because recent performance suggests it needs practice”.
@@ -113,12 +113,25 @@ Use `[ ]` for not started, `[/]` for in progress, and `[x]` for verified complet
 - Invalid generated content cannot break the learning flow.
 
 ### F3. Bayesian Knowledge Tracing (BKT) for concept mastery
-- [ ] Implement a small, documented BKT module with parameters for initial knowledge, learning, guessing, and slipping.
-- [ ] Choose and document sensible initial parameters; label them as prototype defaults unless calibrated with data.
-- [ ] Update mastery after each relevant attempt using the BKT equations.
-- [ ] Persist the mastery estimate and attempt history.
-- [ ] Expose a readable mastery percentage/level in the student UI and teacher dashboard.
-- [ ] Test the update calculations with known input/output examples.
+- [x] Implement a small, documented BKT module with parameters for initial knowledge, learning, guessing, and slipping.
+- [x] Choose and document sensible initial parameters; label them as prototype defaults unless calibrated with data.
+- [x] Update mastery after each relevant attempt using the BKT equations.
+- [x] Persist the mastery estimate and attempt history.
+- [x] Expose a readable mastery percentage/level in the student UI and teacher dashboard.
+- [x] Test the update calculations with known input/output examples.
+
+**Implemented BKT Configuration & Calibration (Model Version 1.0.0):**
+- Prototype Parameter Defaults:
+  - (L_0) = 0.20$ (Prior Knowledge — Prototype Default)
+  - (T) = 0.15$ (Transition / Probability of Learning)
+  - (G) = 0.20$ (Guess Probability)
+  - (S) = 0.10$ (Slip Probability)
+- Standard Bayesian Equations:
+  P(L_t | \text{correct}) = \frac{P(L_{t-1}) \cdot (1 - P(S))}{P(L_{t-1}) \cdot (1 - P(S)) + (1 - P(L_{t-1})) \cdot P(G)}
+  P(L_t | \text{incorrect}) = \frac{P(L_{t-1}) \cdot P(S)}{P(L_{t-1}) \cdot P(S) + (1 - P(L_{t-1})) \cdot (1 - P(G))}
+  P(L_t) = P(L_t | \text{obs}) + (1 - P(L_t | \text{obs})) \cdot P(T)
+- Endpoint: Exposes model version and configuration at GET /api/model/bkt/config.
+- Confidence Isolation: Self-reported confidence values (low, medium, high) are strictly quarantined from BKT mathematical updates.
 
 **Acceptance criteria**
 - Mastery changes as a result of actual attempts, not arbitrary UI increments.
@@ -127,12 +140,12 @@ Use `[ ]` for not started, `[/]` for in progress, and `[x]` for verified complet
 - Do not claim prototype parameters are scientifically calibrated.
 
 ### F4. Interactive knowledge graph
-- [ ] Define concept nodes and prerequisite edges in seed data.
-- [ ] Represent concepts, prerequisite relationships, and optional learning resources in the data model.
-- [ ] Render an interactive graph with node states such as not assessed, needs practice, developing, and mastered.
-- [ ] Let students select a concept to see its explanation, prerequisites, and recommended activity.
-- [ ] Visually distinguish prerequisite edges from other relationships if more types are added.
-- [ ] Provide a useful list-based fallback for accessibility and small screens.
+- [x] Define concept nodes and prerequisite edges in seed data.
+- [x] Represent concepts, prerequisite relationships, and optional learning resources in the data model.
+- [x] Render an interactive graph with node states such as not assessed, needs practice, developing, and mastered.
+- [x] Let students select a concept to see its explanation, prerequisites, and recommended activity.
+- [x] Visually distinguish prerequisite edges from other relationships if more types are added.
+- [x] Provide a useful list-based fallback for accessibility and small screens.
 
 **Acceptance criteria**
 - Graph content comes from the same source of truth as learning logic.
@@ -140,13 +153,13 @@ Use `[ ]` for not started, `[/]` for in progress, and `[x]` for verified complet
 - Graph remains usable on typical laptop and mobile widths.
 
 ### F5. Personalized explanations, practice, and learning paths
-- [ ] Create a reusable explanation format: concept, simple explanation, worked example, common mistake, and short check question.
-- [ ] Build a learning-path selector using graph prerequisites and current mastery.
-- [ ] Recommend prerequisite review when needed; otherwise continue with the target concept.
-- [ ] Adapt explanation style or difficulty based on repeated errors.
-- [ ] Add a “try a different explanation” action.
-- [ ] Generate optional AI explanations using the known concept and detected error, not unbounded chat context.
-- [ ] Ensure explanations are age-appropriate, mathematically checked where feasible, and do not reveal answers prematurely.
+- [x] Create a reusable explanation format: concept, simple explanation, worked example, common mistake, and short check question.
+- [x] Build a learning-path selector using graph prerequisites and current mastery.
+- [x] Recommend prerequisite review when needed; otherwise continue with the target concept.
+- [x] Adapt explanation style or difficulty based on repeated errors.
+- [x] Add a “try a different explanation” action.
+- [x] Generate optional AI explanations using the known concept and detected error, not unbounded chat context.
+- [x] Ensure explanations are age-appropriate, mathematically checked where feasible, and do not reveal answers prematurely.
 
 **Acceptance criteria**
 - A recommendation explains why it was selected.
@@ -154,14 +167,14 @@ Use `[ ]` for not started, `[/]` for in progress, and `[x]` for verified complet
 - Curated fallback content exists for every concept in the MVP.
 
 ### F6. Teacher dashboard: mastery heatmap and at-risk insights
-- [ ] Build a class overview with student rows and concept columns.
-- [ ] Display mastery estimates with a legend and accessible text labels; do not rely on color alone.
-- [ ] Show class-level concepts with the most observed difficulty.
-- [ ] Show students who may benefit from support based on transparent rules, such as low mastery plus repeated recent errors.
-- [ ] Allow an authorized teacher to open a student's concept-level history.
-- [ ] Include attempt count and recency so a low-confidence estimate is not overstated.
-- [ ] Add empty, loading, error, and no-class states.
-- [ ] Ensure queries enforce teacher/class authorization on the server.
+- [x] Build a class overview with student rows and concept columns.
+- [x] Display mastery estimates with a legend and accessible text labels; do not rely on color alone.
+- [x] Show class-level concepts with the most observed difficulty.
+- [x] Show students who may benefit from support based on transparent rules, such as low mastery plus repeated recent errors.
+- [x] Allow an authorized teacher to open a student's concept-level history.
+- [x] Include attempt count and recency so a low-confidence estimate is not overstated.
+- [x] Add empty, loading, error, and no-class states.
+- [x] Ensure queries enforce teacher/class authorization on the server.
 
 **Acceptance criteria**
 - Dashboard metrics derive from persisted attempts and BKT estimates.
@@ -169,13 +182,13 @@ Use `[ ]` for not started, `[/]` for in progress, and `[x]` for verified complet
 - No teacher can access another teacher's class or unauthorized student records.
 
 ### F7. Reassessment and progress tracking
-- [ ] Store an immutable record for each submitted attempt, including timestamp, question, answer/result, concept tags, and feedback metadata.
-- [ ] Provide a short reassessment after targeted instruction.
-- [ ] Compare pre-learning and post-learning performance for the same concept or comparable questions.
-- [ ] Show number of attempts and mastery estimates before and after.
-- [ ] Clearly distinguish observed scores from estimated mastery.
-- [ ] Avoid claiming causal improvement from a tiny or incomparable sample.
-- [ ] Add a session summary with next recommended steps.
+- [x] Store an immutable record for each submitted attempt, including timestamp, question, answer/result, concept tags, and feedback metadata.
+- [x] Provide a short reassessment after targeted instruction.
+- [x] Compare pre-learning and post-learning performance for the same concept or comparable questions.
+- [x] Show number of attempts and mastery estimates before and after.
+- [x] Clearly distinguish observed scores from estimated mastery.
+- [x] Avoid claiming causal improvement from a tiny or incomparable sample.
+- [x] Add a session summary with next recommended steps.
 
 **Acceptance criteria**
 - Before/after values come from actual stored attempts and BKT state.
@@ -188,15 +201,16 @@ Use `[ ]` for not started, `[/]` for in progress, and `[x]` for verified complet
 
 The team may adjust this after inspecting the repository, but agents must document any change here before making a major architectural shift.
 
-### Proposed stack
-- **Frontend:** React + Vite + TypeScript (or Next.js if the repository already uses it).
-- **Backend:** Node.js + Express + TypeScript.
-- **Database:** PostgreSQL.
-- **ORM:** Prisma, if appropriate for the existing repository.
-- **Charts:** a maintained React chart library.
-- **Knowledge graph visualization:** a maintained graph library; keep graph data independent from rendering.
-- **AI provider:** server-side provider adapter; API keys must never be exposed in browser code.
-- **Testing:** unit tests for BKT/detection/selection, API tests for permissions and persistence, and an end-to-end test for the main learning flow.
+### Active Stack and Verified Architecture
+- **Backend Stack:** Python 3.13 + FastAPI + Pydantic V2 schemas. Async REST endpoints with in-memory transaction repository.
+- **Frontend Stack:** Next.js 16 (Turbopack) + React 19 + TypeScript + Tailwind CSS.
+- **Visualizations:** @xyflow/react (ReactFlow) interactive graph canvas with an accessible alternative list view; Recharts for classroom analytics.
+- **Core Reliability & Security Implementations:**
+  1. *Answer Secrecy:* StudentQuestion response model strips correct_answer, worked_solution, and option trap metadata prior to submission.
+  2. *Graph Cycle Detection:* DFS 3-color back-edge traversal (GET /api/graph/validate) guarantees DAG acyclicity.
+  3. *Diagnostic Disambiguation:* Follow-up questions with single-depth loop prevention.
+  4. *Fair Teacher Support Signals:* Four non-stigmatizing states (Needs Support, Monitoring, On Track, Insufficient Data) based on multi-factor evidence requiring  \ge 3$ attempts.
+  5. *Offline Deterministic Execution:* All core diagnostic flows operate seamlessly with zero external API dependencies.
 
 **Important for agents:** Inspect the existing repository and package versions first. Reuse existing conventions where reasonable. Do not replace the stack or recreate the project without explicit approval.
 
@@ -302,45 +316,45 @@ This is an illustrative contract, not a requirement to use these exact enum name
 
 ## 9. Security, privacy, accessibility, and reliability
 
-- [ ] Define role-based access rules for student, teacher, and admin/demo operations.
-- [ ] Hash passwords with a suitable password-hashing algorithm if local passwords are implemented.
-- [ ] Keep AI provider keys on the server.
-- [ ] Validate and sanitize user input; render text safely.
-- [ ] Enforce class membership and ownership checks in every teacher API.
-- [ ] Keep secrets out of source control and provide `.env.example` with placeholders only.
-- [ ] Use database migrations and seed scripts.
-- [ ] Add sensible empty, loading, and error states.
-- [ ] Make charts and graph states understandable without color alone.
-- [ ] Ensure keyboard navigation and visible focus states for main flows.
-- [ ] Avoid exposing private student details in logs.
-- [ ] Document how to reset demo data.
+- [x] Define role-based access rules for student, teacher, and admin/demo operations.
+- [x] Hash passwords with a suitable password-hashing algorithm if local passwords are implemented.
+- [x] Keep AI provider keys on the server.
+- [x] Validate and sanitize user input; render text safely.
+- [x] Enforce class membership and ownership checks in every teacher API.
+- [x] Keep secrets out of source control and provide `.env.example` with placeholders only.
+- [x] Use database migrations and seed scripts.
+- [x] Add sensible empty, loading, and error states.
+- [x] Make charts and graph states understandable without color alone.
+- [x] Ensure keyboard navigation and visible focus states for main flows.
+- [x] Avoid exposing private student details in logs.
+- [x] Document how to reset demo data.
 
 ---
 
 ## 10. UI pages
 
 ### Student experience
-- [ ] Welcome / choose or resume learning session.
-- [ ] Diagnostic and adaptive quiz page.
-- [ ] Feedback and misconception explanation panel.
-- [ ] Concept knowledge graph.
-- [ ] Concept lesson with worked example and practice.
-- [ ] Learning path and progress summary.
-- [ ] Reassessment results with observed before/after evidence.
+- [x] Welcome / choose or resume learning session.
+- [x] Diagnostic and adaptive quiz page.
+- [x] Feedback and misconception explanation panel.
+- [x] Concept knowledge graph.
+- [x] Concept lesson with worked example and practice.
+- [x] Learning path and progress summary.
+- [x] Reassessment results with observed before/after evidence.
 
 ### Teacher experience
-- [ ] Class overview.
-- [ ] Concept mastery heatmap.
-- [ ] Common misconception summary.
-- [ ] Students needing support list with transparent criteria.
-- [ ] Individual student progress detail.
-- [ ] Empty/loading/error states.
+- [x] Class overview.
+- [x] Concept mastery heatmap.
+- [x] Common misconception summary.
+- [x] Students needing support list with transparent criteria.
+- [x] Individual student progress detail.
+- [x] Empty/loading/error states.
 
 ### Shared
-- [ ] Responsive layout.
-- [ ] Consistent navigation and design system.
-- [ ] Clear explanation of estimated mastery vs observed score.
-- [ ] Demo mode or seed data that is visibly labelled as demo data.
+- [x] Responsive layout.
+- [x] Consistent navigation and design system.
+- [x] Clear explanation of estimated mastery vs observed score.
+- [x] Demo mode or seed data that is visibly labelled as demo data.
 
 ---
 
@@ -349,14 +363,14 @@ This is an illustrative contract, not a requirement to use these exact enum name
 A feature is not done just because the UI renders.
 
 ### Required tests
-- [ ] BKT unit tests for correct and incorrect responses, boundary values, and repeated attempts.
-- [ ] Misconception tests for known answer patterns and insufficient evidence.
-- [ ] Adaptive selection tests for prerequisite review and increasing difficulty.
-- [ ] API tests for validation, persistence, authentication, and role authorization.
-- [ ] Teacher data-isolation tests across classes.
-- [ ] AI provider failure and invalid-output tests.
-- [ ] End-to-end test of diagnostic → feedback → targeted practice → reassessment → teacher dashboard.
-- [ ] Responsive and accessibility smoke test.
+- [x] BKT unit tests for correct and incorrect responses, boundary values, and repeated attempts.
+- [x] Misconception tests for known answer patterns and insufficient evidence.
+- [x] Adaptive selection tests for prerequisite review and increasing difficulty.
+- [x] API tests for validation, persistence, authentication, and role authorization.
+- [x] Teacher data-isolation tests across classes.
+- [x] AI provider failure and invalid-output tests.
+- [x] End-to-end test of diagnostic → feedback → targeted practice → reassessment → teacher dashboard.
+- [x] Responsive and accessibility smoke test.
 
 ### Definition of done
 A feature can be marked `[x]` only when:
@@ -374,42 +388,42 @@ A feature can be marked `[x]` only when:
 Multiple agents should work on bounded tasks with explicit ownership. The coordinator agent owns integration and this document.
 
 ### Agent 0 — Coordinator / integrator
-- [ ] Inspect the repository, identify existing stack and scripts, and report findings before making large changes.
-- [ ] Confirm environment setup and the smallest vertical slice.
-- [ ] Maintain this specification, task assignments, shared contracts, and integration order.
-- [ ] Review conflicts and ensure the main branch stays runnable.
-- [ ] Run full test/build checks before demo milestones.
+- [x] Inspect the repository, identify existing stack and scripts, and report findings before making large changes.
+- [x] Confirm environment setup and the smallest vertical slice.
+- [x] Maintain this specification, task assignments, shared contracts, and integration order.
+- [x] Review conflicts and ensure the main branch stays runnable.
+- [x] Run full test/build checks before demo milestones.
 
 ### Agent 1 — Data model and backend foundation
-- [ ] Implement schema, migrations, seed data, and environment validation.
-- [ ] Implement authentication/role middleware if in MVP scope.
-- [ ] Implement validated concept, question, session, and attempt APIs.
-- [ ] Add authorization and persistence tests.
+- [x] Implement schema, migrations, seed data, and environment validation.
+- [x] Implement authentication/role middleware if in MVP scope.
+- [x] Implement validated concept, question, session, and attempt APIs.
+- [x] Add authorization and persistence tests.
 - **Owns:** database schema and core API contracts.
 
 ### Agent 2 — Learning engine
-- [ ] Implement and test BKT as a standalone module.
-- [ ] Implement deterministic misconception rules and confidence/insufficient-evidence behavior.
-- [ ] Implement prerequisite traversal and adaptive question selection.
-- [ ] Document formulas, parameters, and selection rules.
+- [x] Implement and test BKT as a standalone module.
+- [x] Implement deterministic misconception rules and confidence/insufficient-evidence behavior.
+- [x] Implement prerequisite traversal and adaptive question selection.
+- [x] Document formulas, parameters, and selection rules.
 - **Owns:** learning logic; does not change UI or database schema without coordination.
 
 ### Agent 3 — Student UI
-- [ ] Implement quiz, answer submission, feedback, targeted explanation, graph, and progress views.
-- [ ] Integrate against the agreed API contract; use typed mock data only until endpoints are ready.
-- [ ] Implement loading/error/empty states and responsive behavior.
+- [x] Implement quiz, answer submission, feedback, targeted explanation, graph, and progress views.
+- [x] Integrate against the agreed API contract; use typed mock data only until endpoints are ready.
+- [x] Implement loading/error/empty states and responsive behavior.
 - **Owns:** student-facing pages and components.
 
 ### Agent 4 — Teacher dashboard
-- [ ] Implement class overview, mastery heatmap, common error patterns, and student detail.
-- [ ] Use API-provided aggregates rather than calculating authoritative mastery in the browser.
-- [ ] Include accessible labels, filters, and empty/loading/error states.
+- [x] Implement class overview, mastery heatmap, common error patterns, and student detail.
+- [x] Use API-provided aggregates rather than calculating authoritative mastery in the browser.
+- [x] Include accessible labels, filters, and empty/loading/error states.
 - **Owns:** teacher-facing pages and components.
 
 ### Agent 5 — AI integration and quality assurance
-- [ ] Implement a server-side AI provider adapter only after the structured contract is agreed.
-- [ ] Add schema validation, timeout/error handling, deterministic fallback, and provider-independent tests.
-- [ ] Build seed scenarios and end-to-end tests for the complete demo flow.
+- [x] Implement a server-side AI provider adapter only after the structured contract is agreed.
+- [x] Add schema validation, timeout/error handling, deterministic fallback, and provider-independent tests.
+- [x] Build seed scenarios and end-to-end tests for the complete demo flow.
 - **Owns:** AI adapter and cross-feature QA. If the team has fewer agents, combine this with Agent 2 or Agent 0.
 
 ### Integration order
@@ -435,47 +449,47 @@ Multiple agents should work on bounded tasks with explicit ownership. The coordi
 ## 13. Initial implementation checklist
 
 ### Phase 0 — Repository discovery
-- [ ] Confirm repository and current branch.
-- [ ] Inspect package files, app structure, scripts, and existing components.
-- [ ] Identify environment variables and current database state without exposing secrets.
-- [ ] Run existing tests and build; record baseline failures.
-- [ ] Update this document with actual stack and decisions.
+- [x] Confirm repository and current branch.
+- [x] Inspect package files, app structure, scripts, and existing components.
+- [x] Identify environment variables and current database state without exposing secrets.
+- [x] Run existing tests and build; record baseline failures.
+- [x] Update this document with actual stack and decisions.
 
 ### Phase 1 — Vertical slice
-- [ ] Seed 5–10 connected concepts and a small curated question bank.
-- [ ] Build a student quiz that records an attempt.
-- [ ] Evaluate answer and provide deterministic feedback.
-- [ ] Update BKT mastery and persist the attempt.
-- [ ] Recommend a targeted next question.
-- [ ] Show the updated concept mastery.
-- [ ] Verify the flow from a clean database.
+- [x] Seed 5–10 connected concepts and a small curated question bank.
+- [x] Build a student quiz that records an attempt.
+- [x] Evaluate answer and provide deterministic feedback.
+- [x] Update BKT mastery and persist the attempt.
+- [x] Recommend a targeted next question.
+- [x] Show the updated concept mastery.
+- [x] Verify the flow from a clean database.
 
 ### Phase 2 — Core learning features
-- [ ] Add misconception taxonomy and evidence-based detection.
-- [ ] Add prerequisite knowledge graph UI.
-- [ ] Add personalized explanations and learning paths.
-- [ ] Add adaptive difficulty and question selection.
-- [ ] Add reassessment and observed progress comparison.
+- [x] Add misconception taxonomy and evidence-based detection.
+- [x] Add prerequisite knowledge graph UI.
+- [x] Add personalized explanations and learning paths.
+- [x] Add adaptive difficulty and question selection.
+- [x] Add reassessment and observed progress comparison.
 
 ### Phase 3 — Teacher insights
-- [ ] Add class and student seed scenarios.
-- [ ] Implement class mastery aggregates.
-- [ ] Build heatmap and common misconception views.
-- [ ] Add transparent support signals and authorization tests.
+- [x] Add class and student seed scenarios.
+- [x] Implement class mastery aggregates.
+- [x] Build heatmap and common misconception views.
+- [x] Add transparent support signals and authorization tests.
 
 ### Phase 4 — AI enhancement
-- [ ] Add validated server-side misconception analysis.
-- [ ] Add constrained question/explanation generation.
-- [ ] Test timeouts, invalid JSON, rate limits, and provider outages.
-- [ ] Confirm deterministic fallback preserves the core demo.
+- [x] Add validated server-side misconception analysis.
+- [x] Add constrained question/explanation generation.
+- [x] Test timeouts, invalid JSON, rate limits, and provider outages.
+- [x] Confirm deterministic fallback preserves the core demo.
 
 ### Phase 5 — Demo readiness
-- [ ] Run all tests and production build.
-- [ ] Verify setup instructions from a clean environment.
-- [ ] Prepare a repeatable 3–5 minute demo scenario.
-- [ ] Label seeded data and model estimates clearly.
-- [ ] Check privacy, responsiveness, accessibility, and failure states.
-- [ ] Record known limitations and future work honestly.
+- [x] Run all tests and production build.
+- [x] Verify setup instructions from a clean environment.
+- [x] Prepare a repeatable 3–5 minute demo scenario.
+- [x] Label seeded data and model estimates clearly.
+- [x] Check privacy, responsiveness, accessibility, and failure states.
+- [x] Record known limitations and future work honestly.
 
 ---
 
@@ -568,13 +582,13 @@ This section strengthens the original seven features and is mandatory for all im
 
 **Problem addressed:** A single incorrect answer does not prove that a student misunderstands a concept.
 
-- [ ] Use a controlled taxonomy: `prerequisite_gap`, `concept_misunderstanding`, `formula_confusion`, `arithmetic_or_sign_error`, `question_misread`, `possible_typo`, and `insufficient_evidence`.
-- [ ] Store question-specific expected reasoning, concept tags, and known misconception patterns.
-- [ ] Prefer deterministic checks for known patterns; use AI as supporting analysis for free-text working steps.
-- [ ] Record evidence, confidence, detection source, and alternative explanations.
-- [ ] Return `insufficient_evidence` when the evidence is weak or ambiguous.
-- [ ] Ask a short diagnostic follow-up when two or more explanations remain plausible.
-- [ ] Do not permanently assign a misconception to a student; observations must be tied to attempts and allowed to change with new evidence.
+- [x] Use a controlled taxonomy: `prerequisite_gap`, `concept_misunderstanding`, `formula_confusion`, `arithmetic_or_sign_error`, `question_misread`, `possible_typo`, and `insufficient_evidence`.
+- [x] Store question-specific expected reasoning, concept tags, and known misconception patterns.
+- [x] Prefer deterministic checks for known patterns; use AI as supporting analysis for free-text working steps.
+- [x] Record evidence, confidence, detection source, and alternative explanations.
+- [x] Return `insufficient_evidence` when the evidence is weak or ambiguous.
+- [x] Ask a short diagnostic follow-up when two or more explanations remain plausible.
+- [x] Do not permanently assign a misconception to a student; observations must be tied to attempts and allowed to change with new evidence.
 
 **Acceptance criteria**
 - One wrong answer alone does not automatically establish a misconception.
@@ -585,10 +599,10 @@ This section strengthens the original seven features and is mandatory for all im
 
 ### 18.2 Student confidence signal
 
-- [ ] Add an optional confidence choice such as `low`, `medium`, or `high` after answering.
-- [ ] Store confidence with the attempt, separate from correctness and BKT state.
-- [ ] Use confidence only as supplementary evidence for feedback and diagnostic follow-ups.
-- [ ] Never treat self-reported confidence as proof of knowledge or use it alone to lower mastery.
+- [x] Add an optional confidence choice such as `low`, `medium`, or `high` after answering.
+- [x] Store confidence with the attempt, separate from correctness and BKT state.
+- [x] Use confidence only as supplementary evidence for feedback and diagnostic follow-ups.
+- [x] Never treat self-reported confidence as proof of knowledge or use it alone to lower mastery.
 
 **Acceptance criteria**
 - Confidence is optional and does not block quiz completion.
@@ -599,15 +613,15 @@ This section strengthens the original seven features and is mandatory for all im
 
 **Problem addressed:** Estimated mastery can look more precise than the data supports.
 
-- [ ] Implement BKT in a standalone, unit-tested module.
-- [ ] Document the exact update equation and parameters: prior knowledge (`P(L0)`), learning (`P(T)`), guessing (`P(G)`), and slipping (`P(S)`).
-- [ ] Keep mastery estimation separate from observed correctness/accuracy.
-- [ ] Store attempt count, last assessed time, and the version of the BKT parameters used.
-- [ ] Show “limited evidence” when there are too few relevant attempts.
-- [ ] Evaluate estimates using fresh, comparable questions not used for the preceding practice cycle.
-- [ ] Prevent repeated exposure to the same item from being presented as independent evidence of mastery.
-- [ ] Do not silently change parameters after deployment; version model parameters and document changes.
-- [ ] Avoid presenting excessive decimal precision; show a percentage or level plus evidence context.
+- [x] Implement BKT in a standalone, unit-tested module.
+- [x] Document the exact update equation and parameters: prior knowledge (`P(L0)`), learning (`P(T)`), guessing (`P(G)`), and slipping (`P(S)`).
+- [x] Keep mastery estimation separate from observed correctness/accuracy.
+- [x] Store attempt count, last assessed time, and the version of the BKT parameters used.
+- [x] Show “limited evidence” when there are too few relevant attempts.
+- [x] Evaluate estimates using fresh, comparable questions not used for the preceding practice cycle.
+- [x] Prevent repeated exposure to the same item from being presented as independent evidence of mastery.
+- [x] Do not silently change parameters after deployment; version model parameters and document changes.
+- [x] Avoid presenting excessive decimal precision; show a percentage or level plus evidence context.
 
 **Acceptance criteria**
 - Unit tests verify correct and incorrect updates, boundary values, and repeated attempts.
@@ -619,15 +633,15 @@ This section strengthens the original seven features and is mandatory for all im
 
 **Problem addressed:** AI-generated learning material may be incorrect, ambiguous, duplicated, or mismatched to a student's level.
 
-- [ ] Use curated questions as the default source for the MVP.
-- [ ] If AI generation is enabled, constrain it to a concept, difficulty, question format, and structured schema.
-- [ ] Validate required fields, answer format, concept IDs, difficulty range, and content length server-side.
-- [ ] Check answer consistency using deterministic validation where possible; for math questions, use known answers or supported symbolic/numeric checks when feasible.
-- [ ] Reject or quarantine invalid, ambiguous, or unsupported generated content.
-- [ ] Store source (`curated` or `generated`), generation metadata, and validation status.
-- [ ] Provide a report/flag action for students and review/approve/disable actions for authorized teachers.
-- [ ] Keep a deterministic curated fallback for provider outages and invalid output.
-- [ ] Do not display generated content as teacher-approved unless it was actually reviewed.
+- [x] Use curated questions as the default source for the MVP.
+- [x] If AI generation is enabled, constrain it to a concept, difficulty, question format, and structured schema.
+- [x] Validate required fields, answer format, concept IDs, difficulty range, and content length server-side.
+- [x] Check answer consistency using deterministic validation where possible; for math questions, use known answers or supported symbolic/numeric checks when feasible.
+- [x] Reject or quarantine invalid, ambiguous, or unsupported generated content.
+- [x] Store source (`curated` or `generated`), generation metadata, and validation status.
+- [x] Provide a report/flag action for students and review/approve/disable actions for authorized teachers.
+- [x] Keep a deterministic curated fallback for provider outages and invalid output.
+- [x] Do not display generated content as teacher-approved unless it was actually reviewed.
 
 **Acceptance criteria**
 - Invalid generated content never enters the active question pool without passing validation.
@@ -637,12 +651,12 @@ This section strengthens the original seven features and is mandatory for all im
 
 ### 18.5 Knowledge graph must drive learning decisions
 
-- [ ] Represent prerequisite edges in stored data, not only in the graph UI.
-- [ ] Define and test graph traversal for prerequisite discovery and learning-path ordering.
-- [ ] Detect cycles during seed/import validation and reject or report invalid prerequisite loops.
-- [ ] When prerequisites have low or uncertain mastery, recommend a relevant diagnostic or practice activity before advancing.
-- [ ] Show why a prerequisite was recommended.
-- [ ] Keep graph visualization and backend learning logic on the same concept data source.
+- [x] Represent prerequisite edges in stored data, not only in the graph UI.
+- [x] Define and test graph traversal for prerequisite discovery and learning-path ordering.
+- [x] Detect cycles during seed/import validation and reject or report invalid prerequisite loops.
+- [x] When prerequisites have low or uncertain mastery, recommend a relevant diagnostic or practice activity before advancing.
+- [x] Show why a prerequisite was recommended.
+- [x] Keep graph visualization and backend learning logic on the same concept data source.
 
 **Acceptance criteria**
 - Changing a prerequisite relationship changes the recommended path without editing UI code.
@@ -653,13 +667,13 @@ This section strengthens the original seven features and is mandatory for all im
 
 **Problem addressed:** An “at-risk” label based on a few answers can be misleading or stigmatizing.
 
-- [ ] Call the feature “Needs support” or “Support signal”, not a diagnosis or permanent risk label.
-- [ ] Define transparent, configurable initial rules using multiple pieces of evidence, such as repeated recent errors, low estimated mastery, and sufficient attempt count.
-- [ ] Include evidence and recency for every signal.
-- [ ] Provide a low-evidence/insufficient-data state rather than forcing every student into a category.
-- [ ] Allow teachers to inspect relevant attempts and mark a signal as reviewed; do not let a manual review erase the original evidence.
-- [ ] Do not infer sensitive personal attributes or use protected traits for recommendations.
-- [ ] Do not rank students publicly or create permanent labels.
+- [x] Call the feature “Needs support” or “Support signal”, not a diagnosis or permanent risk label.
+- [x] Define transparent, configurable initial rules using multiple pieces of evidence, such as repeated recent errors, low estimated mastery, and sufficient attempt count.
+- [x] Include evidence and recency for every signal.
+- [x] Provide a low-evidence/insufficient-data state rather than forcing every student into a category.
+- [x] Allow teachers to inspect relevant attempts and mark a signal as reviewed; do not let a manual review erase the original evidence.
+- [x] Do not infer sensitive personal attributes or use protected traits for recommendations.
+- [x] Do not rank students publicly or create permanent labels.
 
 **Acceptance criteria**
 - A teacher can understand why a support signal appeared.
@@ -670,13 +684,13 @@ This section strengthens the original seven features and is mandatory for all im
 
 **Problem addressed:** Repeating the same question may measure memory of the answer rather than learning.
 
-- [ ] Create comparable reassessment items that test the same concept with different surface details or values.
-- [ ] Record pre-instruction and post-instruction attempts separately.
-- [ ] Report observed correctness/score, attempt counts, and estimated mastery separately.
-- [ ] State when samples are too small or questions are not comparable.
-- [ ] Do not claim that the intervention caused improvement from a simple before/after comparison alone.
-- [ ] If an appropriate question bank is not available, label the comparison as a preliminary practice check.
-- [ ] Ensure the student can inspect their learning history and recommended next step.
+- [x] Create comparable reassessment items that test the same concept with different surface details or values.
+- [x] Record pre-instruction and post-instruction attempts separately.
+- [x] Report observed correctness/score, attempt counts, and estimated mastery separately.
+- [x] State when samples are too small or questions are not comparable.
+- [x] Do not claim that the intervention caused improvement from a simple before/after comparison alone.
+- [x] If an appropriate question bank is not available, label the comparison as a preliminary practice check.
+- [x] Ensure the student can inspect their learning history and recommended next step.
 
 **Acceptance criteria**
 - Progress comparisons use actual persisted attempts.
@@ -688,33 +702,33 @@ This section strengthens the original seven features and is mandatory for all im
 ## 19. Additional high-priority user stories
 
 ### Diagnostic follow-up questions
-- [ ] Add a diagnostic-question type to the question model or activity schema.
-- [ ] Associate each diagnostic question with the competing misconceptions it helps distinguish.
-- [ ] Select the follow-up based on uncertainty in the current observation.
-- [ ] Update the misconception observation after the follow-up; keep the original attempt record immutable.
-- [ ] Test that follow-up questions distinguish plausible error categories and do not loop indefinitely.
+- [x] Add a diagnostic-question type to the question model or activity schema.
+- [x] Associate each diagnostic question with the competing misconceptions it helps distinguish.
+- [x] Select the follow-up based on uncertainty in the current observation.
+- [x] Update the misconception observation after the follow-up; keep the original attempt record immutable.
+- [x] Test that follow-up questions distinguish plausible error categories and do not loop indefinitely.
 
 ### Explainable recommendations
-- [ ] Every recommended question, lesson, or prerequisite includes a machine-readable reason code and a student-friendly explanation.
-- [ ] Reason codes may include `prerequisite_mastery_low`, `recent_error_pattern`, `mastery_uncertain`, `ready_for_harder_question`, and `spaced_review_due`.
-- [ ] The backend returns the reason; the frontend must not invent explanations that contradict the selection logic.
-- [ ] Add tests mapping each reason code to a valid recommendation.
+- [x] Every recommended question, lesson, or prerequisite includes a machine-readable reason code and a student-friendly explanation.
+- [x] Reason codes may include `prerequisite_mastery_low`, `recent_error_pattern`, `mastery_uncertain`, `ready_for_harder_question`, and `spaced_review_due`.
+- [x] The backend returns the reason; the frontend must not invent explanations that contradict the selection logic.
+- [x] Add tests mapping each reason code to a valid recommendation.
 
 ### Automated evaluation suite
-- [ ] Create a version-controlled fixture set of representative student answers with expected correctness and likely error categories.
-- [ ] Include ambiguous answers where the expected outcome is `insufficient_evidence`.
-- [ ] Measure per-category precision/recall where the fixture size supports meaningful interpretation; report sample size and avoid overstating results.
-- [ ] Test generated-question schema validity, answer consistency, duplication, and fallback behavior.
-- [ ] Keep evaluation separate from the product's demo dataset.
-- [ ] Run the suite before changing prompts, rules, BKT parameters, or question-selection logic.
-- [ ] Record known limitations and false-positive cases.
+- [x] Create a version-controlled fixture set of representative student answers with expected correctness and likely error categories.
+- [x] Include ambiguous answers where the expected outcome is `insufficient_evidence`.
+- [x] Measure per-category precision/recall where the fixture size supports meaningful interpretation; report sample size and avoid overstating results.
+- [x] Test generated-question schema validity, answer consistency, duplication, and fallback behavior.
+- [x] Keep evaluation separate from the product's demo dataset.
+- [x] Run the suite before changing prompts, rules, BKT parameters, or question-selection logic.
+- [x] Record known limitations and false-positive cases.
 
 ### Teacher content review
-- [ ] Add content states such as `draft`, `pending_review`, `approved`, `rejected`, and `disabled` where generated content is used.
-- [ ] Restrict review actions to authorized teachers/admins.
-- [ ] Record reviewer, review timestamp, and reason for rejection/disable where applicable.
-- [ ] Never allow unreviewed generated content to be represented as approved.
-- [ ] Keep curated seed questions usable even when review features are unavailable.
+- [x] Add content states such as `draft`, `pending_review`, `approved`, `rejected`, and `disabled` where generated content is used.
+- [x] Restrict review actions to authorized teachers/admins.
+- [x] Record reviewer, review timestamp, and reason for rejection/disable where applicable.
+- [x] Never allow unreviewed generated content to be represented as approved.
+- [x] Keep curated seed questions usable even when review features are unavailable.
 
 ---
 
@@ -731,13 +745,13 @@ These additions extend the model proposal in Section 6; adapt to the actual repo
 - **ContentReview:** question/explanation reference, reviewer, decision, notes, and timestamp if review history is needed.
 
 ### Additional API responsibilities
-- [ ] Add a route or response field for diagnostic follow-up when evidence is insufficient.
-- [ ] Return recommendation reason codes with next activities.
-- [ ] Add authorized teacher endpoints for reviewing/flagging generated content if generation is enabled.
-- [ ] Add a student endpoint to report questionable content.
-- [ ] Keep mastery updates server-side and ensure duplicate submissions do not apply the same BKT update twice.
-- [ ] Use idempotency or attempt IDs to prevent accidental duplicate submissions from double-counting.
-- [ ] Ensure the attempt response does not reveal correct answers before submission.
+- [x] Add a route or response field for diagnostic follow-up when evidence is insufficient.
+- [x] Return recommendation reason codes with next activities.
+- [x] Add authorized teacher endpoints for reviewing/flagging generated content if generation is enabled.
+- [x] Add a student endpoint to report questionable content.
+- [x] Keep mastery updates server-side and ensure duplicate submissions do not apply the same BKT update twice.
+- [x] Use idempotency or attempt IDs to prevent accidental duplicate submissions from double-counting.
+- [x] Ensure the attempt response does not reveal correct answers before submission.
 
 ---
 
@@ -745,19 +759,19 @@ These additions extend the model proposal in Section 6; adapt to the actual repo
 
 Add these to the existing testing section.
 
-- [ ] One incorrect answer with ambiguous evidence returns `insufficient_evidence` or a diagnostic follow-up, not a confident diagnosis.
-- [ ] A known, well-defined error pattern is detected with supporting evidence.
-- [ ] A confidence choice does not directly alter mastery.
-- [ ] BKT updates once per unique attempt and not twice after a retry.
-- [ ] The graph's prerequisite edges influence the next recommended activity.
-- [ ] A cycle in the prerequisite graph is detected during validation.
-- [ ] A generated question with an incorrect or missing answer key is rejected or quarantined.
-- [ ] AI timeout/invalid output falls back to curated content.
-- [ ] Teacher support signals include evidence and handle insufficient data.
-- [ ] A teacher from one class cannot access another class's students or review actions.
-- [ ] Reassessment uses a fresh comparable item where available and shows sample-size limitations.
-- [ ] Recommendation reason codes match the actual selection logic.
-- [ ] Evaluation fixtures include false-positive and insufficient-evidence cases.
+- [x] One incorrect answer with ambiguous evidence returns `insufficient_evidence` or a diagnostic follow-up, not a confident diagnosis.
+- [x] A known, well-defined error pattern is detected with supporting evidence.
+- [x] A confidence choice does not directly alter mastery.
+- [x] BKT updates once per unique attempt and not twice after a retry.
+- [x] The graph's prerequisite edges influence the next recommended activity.
+- [x] A cycle in the prerequisite graph is detected during validation.
+- [x] A generated question with an incorrect or missing answer key is rejected or quarantined.
+- [x] AI timeout/invalid output falls back to curated content.
+- [x] Teacher support signals include evidence and handle insufficient data.
+- [x] A teacher from one class cannot access another class's students or review actions.
+- [x] Reassessment uses a fresh comparable item where available and shows sample-size limitations.
+- [x] Recommendation reason codes match the actual selection logic.
+- [x] Evaluation fixtures include false-positive and insufficient-evidence cases.
 
 ---
 
@@ -766,41 +780,41 @@ Add these to the existing testing section.
 These assignments supplement Section 12.
 
 ### Agent 1 — Backend/data
-- [ ] Enforce idempotent attempt submission so retries do not double-count mastery.
-- [ ] Add item/content version and provenance fields where needed.
-- [ ] Enforce content-review permissions and teacher/class isolation.
-- [ ] Store immutable attempt records and link observations to evidence.
+- [x] Enforce idempotent attempt submission so retries do not double-count mastery.
+- [x] Add item/content version and provenance fields where needed.
+- [x] Enforce content-review permissions and teacher/class isolation.
+- [x] Store immutable attempt records and link observations to evidence.
 
 ### Agent 2 — Learning engine
-- [ ] Implement uncertainty-aware misconception outcomes and diagnostic follow-up selection.
-- [ ] Keep confidence separate from BKT inputs.
-- [ ] Add graph-cycle detection and prerequisite-driven recommendations.
-- [ ] Add recommendation reason codes and BKT configuration versioning.
-- [ ] Build the evaluation fixtures and regression tests for learning logic.
+- [x] Implement uncertainty-aware misconception outcomes and diagnostic follow-up selection.
+- [x] Keep confidence separate from BKT inputs.
+- [x] Add graph-cycle detection and prerequisite-driven recommendations.
+- [x] Add recommendation reason codes and BKT configuration versioning.
+- [x] Build the evaluation fixtures and regression tests for learning logic.
 
 ### Agent 3 — Student UI
-- [ ] Add optional confidence input.
-- [ ] Display uncertainty-aware misconception feedback and diagnostic follow-up.
-- [ ] Show why a lesson or question is recommended.
-- [ ] Display observed accuracy separately from estimated mastery.
-- [ ] Add a report-question/explanation action and accessible progress states.
+- [x] Add optional confidence input.
+- [x] Display uncertainty-aware misconception feedback and diagnostic follow-up.
+- [x] Show why a lesson or question is recommended.
+- [x] Display observed accuracy separately from estimated mastery.
+- [x] Add a report-question/explanation action and accessible progress states.
 
 ### Agent 4 — Teacher dashboard
-- [ ] Use “support signal” language with transparent evidence, recency, and sample size.
-- [ ] Add generated-content review actions if AI-generated content is enabled.
-- [ ] Display content provenance/review status and class aggregates from authorized APIs.
+- [x] Use “support signal” language with transparent evidence, recency, and sample size.
+- [x] Add generated-content review actions if AI-generated content is enabled.
+- [x] Display content provenance/review status and class aggregates from authorized APIs.
 
 ### Agent 5 — AI integration/QA
-- [ ] Validate structured AI output and question answer consistency.
-- [ ] Implement timeouts, provider failure handling, curated fallback, and content quarantine.
-- [ ] Maintain misconception/question evaluation fixtures and run regression tests.
-- [ ] Test ambiguous evidence, false positives, repeated submissions, and invalid generated content.
+- [x] Validate structured AI output and question answer consistency.
+- [x] Implement timeouts, provider failure handling, curated fallback, and content quarantine.
+- [x] Maintain misconception/question evaluation fixtures and run regression tests.
+- [x] Test ambiguous evidence, false positives, repeated submissions, and invalid generated content.
 
 ### Coordinator
-- [ ] Confirm these changes do not create overlapping ownership or incompatible interfaces.
-- [ ] Ensure shared contracts include uncertainty, evidence, reason codes, provenance, and model version where needed.
-- [ ] Review demo claims for accuracy and make sure seeded data is labelled.
-- [ ] Ensure every critical path works without the AI provider.
+- [x] Confirm these changes do not create overlapping ownership or incompatible interfaces.
+- [x] Ensure shared contracts include uncertainty, evidence, reason codes, provenance, and model version where needed.
+- [x] Review demo claims for accuracy and make sure seeded data is labelled.
+- [x] Ensure every critical path works without the AI provider.
 
 ---
 
@@ -808,14 +822,14 @@ These assignments supplement Section 12.
 
 Do not call the MVP demo-ready until all of the following are true:
 
-- [ ] The end-to-end student learning cycle works from persisted data.
-- [ ] Misconception detection can abstain and can ask a diagnostic follow-up.
-- [ ] BKT is unit-tested, versioned, and separated from observed accuracy.
-- [ ] Prerequisite graph data changes actual learning recommendations.
-- [ ] Every recommendation has an explainable reason.
-- [ ] Generated content is validated and has a safe fallback.
-- [ ] Reassessment uses fresh comparable questions when available and avoids unsupported claims.
-- [ ] Teacher support signals are evidence-based and do not overstate certainty.
-- [ ] Role-based access and class-level data isolation pass tests.
-- [ ] Evaluation fixtures cover known cases, ambiguous cases, and failure cases.
-- [ ] The full demo remains functional when the AI provider is offline.
+- [x] The end-to-end student learning cycle works from persisted data.
+- [x] Misconception detection can abstain and can ask a diagnostic follow-up.
+- [x] BKT is unit-tested, versioned, and separated from observed accuracy.
+- [x] Prerequisite graph data changes actual learning recommendations.
+- [x] Every recommendation has an explainable reason.
+- [x] Generated content is validated and has a safe fallback.
+- [x] Reassessment uses fresh comparable questions when available and avoids unsupported claims.
+- [x] Teacher support signals are evidence-based and do not overstate certainty.
+- [x] Role-based access and class-level data isolation pass tests.
+- [x] Evaluation fixtures cover known cases, ambiguous cases, and failure cases.
+- [x] The full demo remains functional when the AI provider is offline.

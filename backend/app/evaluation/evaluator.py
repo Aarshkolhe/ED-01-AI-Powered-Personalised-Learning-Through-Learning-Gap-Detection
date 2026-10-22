@@ -11,8 +11,11 @@ from typing import Dict, Any, List, Tuple
 from app.services.bkt import bkt_engine
 from app.services.recommendation_service import recommendation_service
 from app.services.confidence_service import confidence_service
+from app.services.graph_service import graph_service
+from app.services.diagnostic_service import diagnostic_service
+from app.data.curriculum import CONCEPTS
 from app.evaluation.validator import QuestionSchemaValidator
-from app.models.schemas import ConfidenceLevel, RevisionSchedule, RevisionStatus
+from app.models.schemas import ConfidenceLevel, RevisionSchedule, RevisionStatus, Concept
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -66,12 +69,16 @@ class EvaluationRunner:
         phase2 = self.evaluate_question_validation(verbose)
         phase3 = self.evaluate_bkt_engine(verbose)
         phase4 = self.evaluate_recommendation_engine(verbose)
+        phase5 = self.evaluate_graph_cycles(verbose)
+        phase6 = self.evaluate_diagnostic_followup(verbose)
 
         all_passed = (
             phase1["passed"] and
             phase2["passed"] and
             phase3["passed"] and
-            phase4["passed"]
+            phase4["passed"] and
+            phase5["passed"] and
+            phase6["passed"]
         )
 
         summary = {
@@ -79,7 +86,9 @@ class EvaluationRunner:
             "misconception_detection": phase1,
             "question_validation": phase2,
             "bkt_engine": phase3,
-            "recommendation_traceability": phase4
+            "recommendation_traceability": phase4,
+            "graph_cycle_detection": phase5,
+            "diagnostic_followup": phase6
         }
 
         if verbose:
@@ -389,6 +398,89 @@ class EvaluationRunner:
         return {
             "passed": all_passed,
             "test_cases_count": len(test_cases)
+        }
+
+    def evaluate_graph_cycles(self, verbose: bool = True) -> Dict[str, Any]:
+        if verbose:
+            print("--- [5/6] Prerequisite Knowledge Graph Cycle Detection (Spec §18.5) ---")
+
+        # 1. Baseline curriculum must be acyclic
+        has_cycles_base, base_cycles = graph_service.detect_cycles(CONCEPTS)
+        base_clean = (not has_cycles_base and len(base_cycles) == 0)
+
+        if verbose:
+            mark = "[PASS]" if base_clean else "[FAIL]"
+            print(f"  {mark} Active curriculum graph is strictly acyclic (0 cycles detected across {len(CONCEPTS)} concepts).")
+
+        # 2. Injected circular loop: C_A -> C_B -> C_C -> C_A must be caught
+        synthetic_loop = [
+            Concept(id="cyc_1", name="Loop 1", description="", order=1, prerequisites=["cyc_3"]),
+            Concept(id="cyc_2", name="Loop 2", description="", order=2, prerequisites=["cyc_1"]),
+            Concept(id="cyc_3", name="Loop 3", description="", order=3, prerequisites=["cyc_2"]),
+        ]
+        has_cycles_synth, synth_cycles = graph_service.detect_cycles(synthetic_loop)
+        synth_caught = has_cycles_synth and len(synth_cycles) > 0
+
+        if verbose:
+            mark = "[PASS]" if synth_caught else "[FAIL]"
+            print(f"  {mark} Injected circular loop correctly caught via DFS 3-color: {synth_cycles}")
+            print("")
+
+        return {
+            "passed": base_clean and synth_caught,
+            "base_clean": base_clean,
+            "synthetic_caught": synth_caught
+        }
+
+    def evaluate_diagnostic_followup(self, verbose: bool = True) -> Dict[str, Any]:
+        if verbose:
+            print("--- [6/6] Diagnostic Follow-Up Disambiguation & Non-Looping (Spec §19) ---")
+
+        # Case 1: Ambiguous fraction error triggers follow-up
+        follow_up = diagnostic_service.evaluate_ambiguity_and_get_followup(
+            question_id="q_frac_like_01",
+            is_correct=False,
+            detected_misconception="add_denominators",
+            is_already_follow_up=False
+        )
+        triggered_correctly = follow_up is not None and follow_up.id == "q_frac_like_01_diag_followup"
+
+        if verbose:
+            mark = "[PASS]" if triggered_correctly else "[FAIL]"
+            print(f"  {mark} Ambiguous response triggers targeted follow-up question: '{getattr(follow_up, 'id', None)}'")
+
+        # Case 2: Follow-up question itself must never trigger secondary follow-up (Strict Loop Prevention)
+        loop_prevention = diagnostic_service.evaluate_ambiguity_and_get_followup(
+            question_id="q_frac_like_01_diag_followup",
+            is_correct=False,
+            detected_misconception="add_denominators",
+            is_already_follow_up=True
+        )
+        loop_prevented = loop_prevention is None
+
+        if verbose:
+            mark = "[PASS]" if loop_prevented else "[FAIL]"
+            print(f"  {mark} Loop prevention verified: follow-up cannot trigger nested follow-ups.")
+
+        # Case 3: Correct answer never triggers follow-up
+        correct_follow_up = diagnostic_service.evaluate_ambiguity_and_get_followup(
+            question_id="q_frac_like_01",
+            is_correct=True,
+            detected_misconception=None,
+            is_already_follow_up=False
+        )
+        correct_clean = correct_follow_up is None
+
+        if verbose:
+            mark = "[PASS]" if correct_clean else "[FAIL]"
+            print(f"  {mark} Correct answer produces no unnecessary follow-up disruption.")
+            print("")
+
+        all_passed = triggered_correctly and loop_prevented and correct_clean
+        return {
+            "passed": all_passed,
+            "triggered_correctly": triggered_correctly,
+            "loop_prevented": loop_prevented
         }
 
 if __name__ == "__main__":

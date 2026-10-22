@@ -130,14 +130,16 @@ export const MisconceptionGenerator: React.FC = () => {
             ))}
           </div>
 
-          <div className="mt-3 pt-2 border-t border-slate-900 text-xs text-slate-400">
-            <span className="font-semibold text-slate-300">{t('Verified Solution:', 'सत्यापित हल:')}</span>
-            <ul className="list-disc list-inside mt-1 space-y-0.5">
-              {generatedQ.worked_solution.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
-          </div>
+          {generatedQ.worked_solution && generatedQ.worked_solution.length > 0 && (
+            <div className="mt-3 pt-2 border-t border-slate-900 text-xs text-slate-400">
+              <span className="font-semibold text-slate-300">{t('Verified Solution:', 'सत्यापित हल:')}</span>
+              <ul className="list-disc list-inside mt-1 space-y-0.5">
+                {generatedQ.worked_solution.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -31,3 +31,17 @@ def test_evaluation_recommendation_traceability():
     phase4 = runner.evaluate_recommendation_engine(verbose=False)
     assert phase4["passed"] is True
     assert phase4["test_cases_count"] >= 4
+
+def test_evaluation_graph_cycle_detection():
+    runner = EvaluationRunner()
+    phase5 = runner.evaluate_graph_cycles(verbose=False)
+    assert phase5["passed"] is True
+    assert phase5["base_clean"] is True
+    assert phase5["synthetic_caught"] is True
+
+def test_evaluation_diagnostic_followup():
+    runner = EvaluationRunner()
+    phase6 = runner.evaluate_diagnostic_followup(verbose=False)
+    assert phase6["passed"] is True
+    assert phase6["triggered_correctly"] is True
+    assert phase6["loop_prevented"] is True

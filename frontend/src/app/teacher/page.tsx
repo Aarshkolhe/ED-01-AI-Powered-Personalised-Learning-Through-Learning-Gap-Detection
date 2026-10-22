@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { api, ClassroomAnalytics } from '@/lib/api';
+import { api, ClassroomAnalytics, StudentSummary, SupportSignal } from '@/lib/api';
 import { useApp } from '@/lib/context';
 import { TeacherReviewQueue } from '@/components/TeacherReviewQueue';
 import { TeacherReportedIssues } from '@/components/TeacherReportedIssues';
@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
+  Clock,
   ChevronRight,
   Sparkles,
   BarChart,
@@ -29,16 +30,6 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
-
-interface StudentSummary {
-  student_id: string;
-  name: string;
-  grade: string;
-  average_mastery: number;
-  risk_level: string;
-  active_gaps_count: number;
-  active_gaps: string[];
-}
 
 export default function TeacherDashboardPage() {
   const { t } = useApp();
@@ -86,7 +77,8 @@ export default function TeacherDashboardPage() {
 
   const filteredStudents = students.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.risk_level.toLowerCase().includes(searchQuery.toLowerCase())
+    (s.support_signal || s.risk_level || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.evidence_summary || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -175,11 +167,11 @@ export default function TeacherDashboardPage() {
 
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-400">{t('Identified At-Risk Learners', 'सुधार की आवश्यकता वाले छात्र')}</span>
+                  <span className="text-xs font-medium text-slate-400">{t('Learners Needing Support', 'सहयोग की आवश्यकता वाले छात्र')}</span>
                   <AlertTriangle className="w-5 h-5 text-rose-400" />
                 </div>
                 <p className="text-3xl font-bold font-mono text-rose-400 mt-3">{analytics.at_risk_students_count}</p>
-                <span className="text-xs text-rose-400/80 mt-1 block">&lt; 60% concept threshold</span>
+                <span className="text-xs text-rose-400/80 mt-1 block">Evidence-based multi-factor signal</span>
               </div>
             </div>
 
@@ -300,14 +292,14 @@ export default function TeacherDashboardPage() {
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-slate-100">{t('Student Roster & Risk Diagnosis', 'छात्र सूची और जोखिम निदान')}</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">{t('Evidence-based risk scoring from live attempts', 'लाइव प्रयासों के आधार पर जोखिम मूल्यांकन')}</p>
+                  <h3 className="text-base font-bold text-slate-100">{t('Student Roster & Support Signals', 'छात्र सूची और सहयोग संकेत')}</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{t('Evidence-based support triage from live learning data (Spec §18.6)', 'लाइव डेटा के आधार पर पारदर्शी सहयोग संकेत')}</p>
                 </div>
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    placeholder={t('Search student...', 'छात्र खोजें...')}
+                    placeholder={t('Search student or signal...', 'छात्र या संकेत खोजें...')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-teal-500 w-64"
@@ -321,39 +313,67 @@ export default function TeacherDashboardPage() {
                     <tr>
                       <th className="p-3">{t('Student Name', 'छात्र का नाम')}</th>
                       <th className="p-3">{t('Grade', 'कक्षा')}</th>
+                      <th className="p-3">{t('Attempts', 'प्रयास')}</th>
                       <th className="p-3">{t('Avg Mastery', 'औसत दक्षता')}</th>
-                      <th className="p-3">{t('Risk Status', 'जोखिम स्थिति')}</th>
+                      <th className="p-3">{t('Support Signal', 'सहयोग संकेत')}</th>
+                      <th className="p-3">{t('Evidence Behind Signal', 'संकेत के पीछे साक्ष्य')}</th>
                       <th className="p-3">{t('Active Gaps', 'सक्रिय गैप')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {filteredStudents.map((s) => (
-                      <tr key={s.student_id} className="hover:bg-slate-950/40 transition-colors">
-                        <td className="p-3 font-semibold text-slate-200">{s.name}</td>
-                        <td className="p-3 text-slate-400">{s.grade}</td>
-                        <td className="p-3 font-mono font-bold text-teal-400">{Math.round(s.average_mastery * 100)}%</td>
-                        <td className="p-3">
-                          <span
-                            className={`px-2 py-0.5 rounded-full font-semibold ${
-                              s.risk_level === 'High Risk'
-                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                                : s.risk_level === 'Moderate Risk'
-                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            }`}
-                          >
-                            {s.risk_level}
-                          </span>
-                        </td>
-                        <td className="p-3 text-slate-400">
-                          {s.active_gaps_count > 0 ? (
-                            <span className="text-rose-400 font-medium">{s.active_gaps_count} concepts flagged</span>
-                          ) : (
-                            <span className="text-emerald-400 font-medium">None</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredStudents.map((s) => {
+                      const signal: SupportSignal = s.support_signal || (
+                        s.risk_level === 'High Risk'
+                          ? 'Needs Support'
+                          : s.risk_level === 'Moderate Risk'
+                          ? 'Monitoring'
+                          : 'On Track'
+                      );
+                      return (
+                        <tr key={s.student_id} className="hover:bg-slate-950/40 transition-colors">
+                          <td className="p-3 font-semibold text-slate-200">{s.name}</td>
+                          <td className="p-3 text-slate-400">{s.grade}</td>
+                          <td className="p-3 font-mono text-slate-300">{s.attempt_count ?? '—'}</td>
+                          <td className="p-3 font-mono font-bold text-teal-400">{Math.round(s.average_mastery * 100)}%</td>
+                          <td className="p-3">
+                            {signal === 'Needs Support' && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                Needs Support
+                              </span>
+                            )}
+                            {signal === 'Monitoring' && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                <Clock className="w-3 h-3 mr-1" />
+                                Monitoring
+                              </span>
+                            )}
+                            {signal === 'On Track' && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                On Track
+                              </span>
+                            )}
+                            {signal === 'Insufficient Data' && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                                <HelpCircle className="w-3 h-3 mr-1" />
+                                Insufficient Data
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-slate-300 max-w-xs truncate" title={s.evidence_summary}>
+                            {s.evidence_summary || 'Sparse attempt history'}
+                          </td>
+                          <td className="p-3 text-slate-400">
+                            {s.active_gaps_count > 0 ? (
+                              <span className="text-rose-400 font-medium">{s.active_gaps_count} concepts flagged</span>
+                            ) : (
+                              <span className="text-emerald-400 font-medium">None</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

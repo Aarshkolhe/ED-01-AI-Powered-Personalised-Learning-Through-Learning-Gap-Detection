@@ -10,14 +10,15 @@ Includes full integration of Features A-F:
 
 from fastapi import APIRouter, HTTPException, Query, Body
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from app.models.schemas import (
-    Concept, Question, AnswerSubmission, AnswerEvaluation,
+    Concept, Question, StudentQuestion, StudentQuestionOption, AnswerSubmission, AnswerEvaluation,
     StepSubmission, StepMistakeAnalysis, QuestionGenerationRequest,
     RecoveryPlan, RecoveryScoreReport, ClassroomAnalytics, StudentMastery,
-    ConfidenceLevel, RevisionSchedule, Recommendation, RecommendationReasonCode,
-    ContentReviewStatus, ContentReport, ContentReportReason, ContentReportStatus
+    ConfidenceLevel, RevisionSchedule, RevisionStatus, Recommendation, RecommendationReasonCode,
+    ContentReviewStatus, ContentReport, ContentReportReason, ContentReportStatus,
+    ErrorTaxonomyCategory, SupportSignal, StudentSummary, BKTModelVersion
 )
 from app.data.repository import repo
 from app.data.curriculum import CONCEPTS, SEED_QUESTIONS, MISCONCEPTIONS
@@ -29,6 +30,8 @@ from app.services.confidence_service import confidence_service
 from app.services.spaced_revision import spaced_revision_service
 from app.services.recommendation_service import recommendation_service
 from app.services.content_review_service import content_review_service
+from app.services.graph_service import graph_service
+from app.services.diagnostic_service import diagnostic_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -108,25 +111,45 @@ def get_knowledge_graph(student_id: Optional[str] = "student_alex"):
 
     return {"nodes": nodes, "edges": edges}
 
-# ----------------- Diagnostic Questions (Feature D Quality Gate Filtered) -----------------
-@router.get("/diagnostic/questions", response_model=List[Question])
+# ----------------- Diagnostic Questions (Feature D Quality Gate Filtered & Safe Client View) -----------------
+@router.get("/diagnostic/questions", response_model=List[StudentQuestion])
 def get_diagnostic_questions(concept_id: Optional[str] = None):
     # Enforce Feature D Quality Gate: Filter out unapproved, draft, or disabled questions
     eligible = content_review_service.filter_student_eligible_questions(list(repo.questions.values()))
+    # Omit post-reassessment items and follow-up items from the general diagnostic pool
+    candidates = [q for q in eligible if "post" not in q.id and not getattr(q, "is_follow_up", False)]
     if concept_id:
-        return [q for q in eligible if q.concept_id == concept_id and "post" not in q.id]
-    return [q for q in eligible if "post" not in q.id]
+        filtered = [q.to_student_view() for q in candidates if q.concept_id == concept_id]
+        return filtered if filtered else [q.to_student_view() for q in candidates]
+    return [q.to_student_view() for q in candidates]
 
-@router.get("/reassessment/questions", response_model=List[Question])
+@router.get("/reassessment/questions", response_model=List[StudentQuestion])
 def get_reassessment_questions(concept_id: Optional[str] = None):
     eligible = content_review_service.filter_student_eligible_questions(list(repo.questions.values()))
-    post_qs = [q for q in eligible if "post" in q.id]
+    post_qs = [q for q in eligible if "post" in q.id and not getattr(q, "is_follow_up", False)]
     if concept_id:
-        filtered = [q for q in post_qs if q.concept_id == concept_id]
-        return filtered if filtered else post_qs
-    return post_qs
+        filtered = [q.to_student_view() for q in post_qs if q.concept_id == concept_id]
+        return filtered if filtered else [q.to_student_view() for q in post_qs]
+    return [q.to_student_view() for q in post_qs]
 
-# ----------------- Submission & Evaluation (Features A & B Integrated) -----------------
+def map_misconception_to_taxonomy(misconception_id: Optional[str], student_answer: str, is_correct: bool) -> ErrorTaxonomyCategory:
+    if is_correct:
+        return ErrorTaxonomyCategory.INSUFFICIENT_EVIDENCE
+    if not student_answer or not student_answer.strip():
+        return ErrorTaxonomyCategory.INSUFFICIENT_EVIDENCE
+    if not misconception_id:
+        return ErrorTaxonomyCategory.INSUFFICIENT_EVIDENCE
+
+    taxonomy_map = {
+        "add_denominators": ErrorTaxonomyCategory.CONCEPT_MISUNDERSTANDING,
+        "unlike_terms_merging": ErrorTaxonomyCategory.CONCEPT_MISUNDERSTANDING,
+        "cross_multiply_in_addition": ErrorTaxonomyCategory.FORMULA_CONFUSION,
+        "sign_flip_omission": ErrorTaxonomyCategory.ARITHMETIC_OR_SIGN_ERROR,
+        "divide_only_one_term": ErrorTaxonomyCategory.ARITHMETIC_OR_SIGN_ERROR,
+    }
+    return taxonomy_map.get(misconception_id, ErrorTaxonomyCategory.CONCEPT_MISUNDERSTANDING)
+
+# ----------------- Submission & Evaluation (Features A, B, and Follow-ups Integrated) -----------------
 @router.post("/diagnostic/submit", response_model=AnswerEvaluation)
 def submit_answer(sub: AnswerSubmission):
     question = repo.questions.get(sub.question_id)
@@ -159,6 +182,18 @@ def submit_answer(sub: AnswerSubmission):
             if "2/5" in sub.student_answer:
                 detected_misconception = "add_denominators"
                 misconception_explanation = MISCONCEPTIONS["add_denominators"]["remediation_hint"]
+
+    error_taxonomy = map_misconception_to_taxonomy(detected_misconception, sub.student_answer, is_correct)
+
+    # Spec §18.1 & §19: Diagnostic Follow-up Disambiguation
+    follow_up_item = diagnostic_service.evaluate_ambiguity_and_get_followup(
+        question_id=question.id,
+        is_correct=is_correct,
+        detected_misconception=detected_misconception,
+        is_already_follow_up=getattr(question, "is_follow_up", False)
+    )
+    needs_follow_up = follow_up_item is not None
+    follow_up_student_view = follow_up_item.to_student_view() if follow_up_item else None
 
     # Feature A: Confidence Insight
     # CRITICAL: Confidence is strictly isolated and NEVER alters BKT inputs!
@@ -246,10 +281,13 @@ def submit_answer(sub: AnswerSubmission):
         "confidence": sub.confidence,
         "misconception_id": detected_misconception,
         "misconception_name": MISCONCEPTIONS[detected_misconception]["name"] if detected_misconception in MISCONCEPTIONS else None,
+        "error_taxonomy": error_taxonomy.value,
         "response_time_seconds": sub.response_time_seconds,
         "idempotency_key": sub.idempotency_key,
         "created_at": now_dt.isoformat(),
-        "is_reassessment": sub.is_reassessment
+        "is_reassessment": sub.is_reassessment,
+        "is_follow_up": getattr(question, "is_follow_up", False),
+        "parent_question_id": getattr(question, "parent_question_id", None)
     })
 
     return AnswerEvaluation(
@@ -258,14 +296,18 @@ def submit_answer(sub: AnswerSubmission):
         concept_id=question.concept_id,
         detected_misconception=detected_misconception,
         misconception_explanation=misconception_explanation,
+        error_taxonomy=error_taxonomy,
         ai_feedback=ai_feedback,
+        worked_solution=question.worked_solution,
         previous_mastery=prior_p,
         updated_mastery=p_projected,
         mastery_change=mastery_change,
         is_mastered=is_mastered,
         response_time_seconds=sub.response_time_seconds,
         time_signal=time_signal,
-        confidence_insight=confidence_insight
+        confidence_insight=confidence_insight,
+        needs_follow_up=needs_follow_up,
+        follow_up_question=follow_up_student_view
     )
 
 # ----------------- Feature B: Spaced Revision Endpoints -----------------
@@ -653,7 +695,8 @@ def get_classroom_analytics():
         intervention_recommendations=interventions
     )
 
-@router.get("/analytics/students")
+# Spec §18.6: Fair Teacher Support Signals Endpoint
+@router.get("/analytics/students", response_model=List[StudentSummary])
 def get_students_summary():
     students_list = []
     for sid, u in repo.users.items():
@@ -661,13 +704,65 @@ def get_students_summary():
             recs = repo.mastery_records.get(sid, {})
             avg_m = round(sum(r.p_mastery for r in recs.values()) / max(1, len(recs)), 2)
             gaps = [r.concept_id for r in recs.values() if r.p_mastery < 0.60]
-            students_list.append({
-                "student_id": sid,
-                "name": u["name"],
-                "grade": u.get("grade", "8th Grade"),
-                "average_mastery": avg_m,
-                "risk_level": "High Risk" if avg_m < 0.50 else ("Moderate Risk" if avg_m < 0.75 else "On Track"),
-                "active_gaps_count": len(gaps),
-                "active_gaps": gaps
-            })
+
+            student_attempts = [a for a in repo.attempts if a.get("student_id") == sid]
+            attempts_count = len(student_attempts)
+            recent_errs = sum(1 for a in student_attempts[-5:] if not a.get("is_correct", False))
+
+            # Fair Support Signal transparent criteria (Spec §18.6)
+            if attempts_count < 2:
+                signal = SupportSignal.INSUFFICIENT_DATA
+                evidence_summary = f"Only {attempts_count} attempt(s) recorded; data is insufficient for support determination."
+                risk_compat = "Insufficient Data"
+            elif avg_m < 0.50 and recent_errs >= 2 and attempts_count >= 3:
+                signal = SupportSignal.NEEDS_SUPPORT
+                evidence_summary = f"Mastery estimated at {int(avg_m*100)}% with {recent_errs} recent errors across {attempts_count} practice attempts."
+                risk_compat = "Needs Support"
+            elif avg_m >= 0.75:
+                signal = SupportSignal.ON_TRACK
+                evidence_summary = f"Consistently high mastery ({int(avg_m*100)}%) across target mathematics concepts."
+                risk_compat = "On Track"
+            else:
+                signal = SupportSignal.MONITORING
+                evidence_summary = f"Mastery estimated at {int(avg_m*100)}%; regular monitoring recommended."
+                risk_compat = "Monitoring"
+
+            students_list.append(StudentSummary(
+                student_id=sid,
+                name=u["name"],
+                grade=u.get("grade", "8th Grade"),
+                average_mastery=avg_m,
+                support_signal=signal,
+                risk_level=risk_compat,
+                evidence_summary=evidence_summary,
+                attempt_count=attempts_count,
+                last_active=student_attempts[-1].get("created_at") if student_attempts else None,
+                active_gaps_count=len(gaps),
+                active_gaps=gaps
+            ))
     return students_list
+
+# ----------------- Spec §18.5 & §21: Knowledge Graph Integrity & Cycle Detection -----------------
+@router.get("/graph/validate")
+def validate_knowledge_graph():
+    """
+    Validates prerequisite graph structure and checks for circular dependencies.
+    """
+    has_cycles, cycles = graph_service.detect_cycles(list(repo.concepts.values()))
+    topological_order = [] if has_cycles else graph_service.topological_sort(list(repo.concepts.values()))
+    return {
+        "is_valid": not has_cycles,
+        "has_cycles": has_cycles,
+        "cycles": cycles,
+        "topological_order": topological_order,
+        "total_concepts": len(repo.concepts)
+    }
+
+# ----------------- Spec §18.3: BKT Model Configuration & Parameter Versioning -----------------
+@router.get("/model/bkt/config", response_model=BKTModelVersion)
+def get_bkt_config():
+    """
+    Exposes documented BKT formulas, parameter versions, and Dirichlet defaults.
+    """
+    return BKTModelVersion()
+
