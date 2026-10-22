@@ -365,6 +365,7 @@ class TutorChatResponse(BaseModel):
     is_fallback: bool = False
     model: str = "grok-2-latest"
     error: Optional[str] = None
+    error_code: Optional[str] = None
 
 class DynamicLessonRequest(BaseModel):
     student_id: str = "student_alex"

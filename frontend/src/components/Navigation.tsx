@@ -27,7 +27,7 @@ export const Navigation: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 w-full pt-3 px-3 sm:px-6 lg:px-8">
       <nav
-        className="max-w-6xl mx-auto rounded-2xl sm:rounded-full border border-slate-700/60 bg-[#0B1120]/90 backdrop-blur-xl shadow-xl shadow-black/40 transition-all duration-300"
+        className="max-w-6xl mx-auto rounded-2xl sm:rounded-full border border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl shadow-black/60 transition-all duration-300"
         aria-label="Main Navigation"
       >
         <div className="px-3 sm:px-6">
@@ -43,39 +43,39 @@ export const Navigation: React.FC = () => {
                 href="/"
                 className={`px-3.5 py-1.5 rounded-full transition-all text-xs sm:text-sm font-medium ${
                   isHome
-                    ? 'text-cyan-300 bg-cyan-500/10 font-semibold border border-cyan-500/25'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    ? 'text-white bg-white/20 font-bold border border-white/20 shadow-sm backdrop-blur-md'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {t('Home', 'होम')}
               </Link>
               <Link
                 href="/#features"
-                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
               >
                 {t('Features', 'विशेषताएं')}
               </Link>
               <Link
                 href="/#how-it-works"
-                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
               >
                 {t('How It Works', 'यह कैसे काम करता है')}
               </Link>
               <Link
                 href="/#about"
-                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
               >
                 {t('About', 'परिचय')}
               </Link>
 
               {/* Direct Portal Jumps */}
-              <div className="flex items-center space-x-1 pl-2 border-l border-slate-700/60">
+              <div className="flex items-center space-x-1 pl-2 border-l border-white/10">
                 <Link
                   href="/student"
                   className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                     isStudent
                       ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   {t('Student', 'छात्र')}
@@ -85,7 +85,7 @@ export const Navigation: React.FC = () => {
                   className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                     isTeacher
                       ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   {t('Teacher', 'शिक्षक')}
@@ -97,12 +97,12 @@ export const Navigation: React.FC = () => {
             <div className="hidden sm:flex items-center space-x-2.5 flex-shrink-0">
               {/* Persona switcher if in student view */}
               {isStudent && (
-                <div className="flex items-center space-x-1 bg-slate-900/80 px-2.5 py-1.5 rounded-full border border-slate-700/60 text-xs">
+                <div className="flex items-center space-x-1 bg-black/40 px-2.5 py-1.5 rounded-full border border-white/10 text-xs backdrop-blur-md">
                   <span className="text-slate-400 text-[10px]">{t('Persona:', 'छात्र:')}</span>
                   <select
                     value={activeStudentId}
                     onChange={(e) => setActiveStudentId(e.target.value)}
-                    className="bg-transparent text-cyan-400 focus:outline-none cursor-pointer font-medium text-xs"
+                    className="bg-transparent text-white focus:outline-none cursor-pointer font-medium text-xs"
                   >
                     <option value="student_alex" className="bg-[#0B1120] text-slate-200">Alex Chen</option>
                     <option value="student_priya" className="bg-[#0B1120] text-slate-200">Priya Sharma</option>
@@ -134,7 +134,7 @@ export const Navigation: React.FC = () => {
               {/* Get Started Button */}
               <Link
                 href="/student"
-                className="px-4.5 py-1.5 rounded-full text-xs font-bold text-slate-950 bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-300 hover:to-cyan-300 shadow-md shadow-cyan-500/20 transition-all hover:scale-[1.02] flex items-center space-x-1"
+                className="px-4.5 py-1.5 rounded-full text-xs font-bold text-slate-950 bg-white hover:bg-white/90 text-black shadow-lg shadow-white/10 transition-all hover:scale-[1.02] flex items-center space-x-1"
               >
                 <span>{t('Get Started', 'आरंभ करें')}</span>
                 <ArrowRight className="w-3 h-3 text-slate-950" />
@@ -165,7 +165,7 @@ export const Navigation: React.FC = () => {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-700/60 px-5 py-4 space-y-3 bg-[#0B1120]/95 rounded-b-2xl">
+          <div className="md:hidden border-t border-white/10 px-5 py-4 space-y-3 bg-black/80 backdrop-blur-2xl rounded-b-2xl">
             <div className="flex flex-col space-y-2 text-sm font-medium">
               <Link
                 href="/"
@@ -177,21 +177,21 @@ export const Navigation: React.FC = () => {
               <Link
                 href="/#features"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5"
+                className="px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10"
               >
                 {t('Features', 'विशेषताएं')}
               </Link>
               <Link
                 href="/#how-it-works"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5"
+                className="px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10"
               >
                 {t('How It Works', 'यह कैसे काम करता है')}
               </Link>
               <Link
                 href="/#about"
                 onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/5"
+                className="px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10"
               >
                 {t('About', 'परिचय')}
               </Link>

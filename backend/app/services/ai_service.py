@@ -1,3 +1,4 @@
+import httpx
 """
 AI Misconception Diagnostic & Question Generator Service.
 Integrates xAI Grok as primary generative AI provider,
@@ -16,13 +17,27 @@ class AIService:
     def __init__(self):
         self.grok = grok_service
         self.client = None
-        if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip() and not settings.GEMINI_API_KEY.startswith("your-"):
-            try:
-                from google import genai
-                self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            except Exception as e:
-                print(f"[AIService Warning] Could not initialize Gemini client: {e}")
-                self.client = None
+
+    def is_gemini_active(self) -> bool:
+        return bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip() and not settings.GEMINI_API_KEY.startswith("your-"))
+
+    def _call_gemini(self, prompt: str) -> Optional[str]:
+        if not settings.GEMINI_API_KEY or not settings.GEMINI_API_KEY.strip() or settings.GEMINI_API_KEY.startswith("your-"):
+            return None
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY.strip()}"
+        try:
+            with httpx.Client(timeout=15.0) as client:
+                res = client.post(url, json={"contents": [{"parts": [{"text": prompt}]}]})
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates and "content" in candidates[0]:
+                        parts = candidates[0]["content"].get("parts", [])
+                        if parts and "text" in parts[0]:
+                            return parts[0]["text"].strip()
+        except Exception as e:
+            print(f"[AIService Gemini Fallback] {e}")
+        return None
 
     def explain_error(
         self,
@@ -49,8 +64,8 @@ class AIService:
             except Exception as e:
                 print(f"[AIService Grok Fallback] {e}")
 
-        # 2. Secondary: If Gemini client is active
-        if self.client:
+        # 2. Secondary: If Gemini is active
+        if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
             try:
                 prompt = f"""
                 You are a supportive, encouraging tutor for Thinkflow.
@@ -64,12 +79,9 @@ class AIService:
                 Provide a 2-sentence encouraging, student-friendly explanation of why their answer was incorrect and what conceptual rule they should remember.
                 Do NOT just state the answer directly. Keep it warm and actionable.
                 """
-                response = self.client.models.generate_content(
-                    model=settings.GEMINI_MODEL,
-                    contents=prompt
-                )
-                if response and response.text:
-                    return response.text.strip()
+                gemini_text = self._call_gemini(prompt)
+                if gemini_text:
+                    return gemini_text
             except Exception as e:
                 print(f"[AIService Gemini Fallback] {e}")
 

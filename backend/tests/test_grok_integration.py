@@ -147,6 +147,22 @@ def test_tutor_chat_mocked_grok_success():
             assert len(data["suggested_followups"]) == 3
             assert "Second Law" in data["suggested_followups"][0]
 
+def test_tutor_chat_out_of_credits_returns_403():
+    """Verifies that when xAI reports permission-denied / out-of-credits, backend truthfully returns HTTP 403."""
+    with patch.object(settings, "XAI_API_KEY", "xai-test-key"):
+        with patch.object(grok_service, "_call_grok", return_value=(None, "Your xAI team needs active API credits or the required API access to generate responses.")):
+            req = {
+                "student_id": "student_alex",
+                "subject": "Physics",
+                "topic": "Gravity",
+                "level": "intermediate",
+                "messages": [{"role": "user", "content": "What is gravitational potential energy?"}]
+            }
+            res = client.post("/api/tutor/chat", json=req)
+            assert res.status_code == 403
+            data = res.json()
+            assert "Your xAI team needs active API credits or the required API access to generate responses." in data["detail"]
+
 # -------------------------------------------------------------------------
 # 3. Dynamic Lesson Generation
 # -------------------------------------------------------------------------

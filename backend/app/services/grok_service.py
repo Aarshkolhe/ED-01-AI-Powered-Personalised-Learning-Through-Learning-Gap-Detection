@@ -241,10 +241,18 @@ class GrokService:
                             return choices[0]["message"].get("content", "").strip(), None
                         return None, "Empty response choices received from Grok"
                     elif resp.status_code == 401:
-                        return None, "Invalid xAI API Key (401 Unauthorized). Please check your key at https://console.x.ai/"
+                        logger.warning("xAI Grok provider authentication failed (HTTP 401): Invalid API key. (Key redacted)")
+                        return None, "Invalid xAI API Key (401 Unauthorized). Please check your credentials in the xAI Console."
                     elif resp.status_code == 403 or "credit" in resp.text.lower() or "permission-denied" in resp.text.lower():
-                        return None, "xAI Team Account Notice (403): Your xAI team does not have any active API credits or licenses yet. Please purchase credits at https://console.x.ai/ to use the live Grok model."
+                        logger.warning("xAI Grok provider access denied (HTTP 403 / out_of_credits): Team has no active credits or licenses. (API credentials redacted)")
+                        return None, "Your xAI team needs active API credits or the required API access to generate responses."
                     elif resp.status_code == 429:
+                        if attempt < self.max_retries:
+                            time.sleep(backoff)
+                            backoff *= 2
+                            continue
+                        logger.warning("xAI Grok provider rate limit reached (HTTP 429).")
+                        return None, "xAI Grok rate limit reached (429). Please try again shortly."
                         if attempt < self.max_retries:
                             time.sleep(backoff)
                             backoff *= 2
@@ -333,18 +341,24 @@ class GrokService:
 
         # Honest Real Error Surfacing: Never silently replace a failed request with hardcoded text!
         if self.is_configured() and err:
+            err_code = "api_error"
+            if "credits" in err.lower() or "403" in err or "permission-denied" in err.lower():
+                err_code = "out_of_credits"
+            elif "401" in err or "unauthorized" in err.lower() or "invalid xai" in err.lower():
+                err_code = "invalid_key"
+            elif "429" in err or "rate limit" in err.lower():
+                err_code = "rate_limited"
+
             return TutorChatResponse(
-                response=f"⚠️ **xAI Grok Provider Notice**\n\n{err}",
+                response="",
                 subject=subject,
                 topic=topic,
                 level=level,
-                suggested_followups=[
-                    "Check xAI team billing at console.x.ai",
-                    "Verify your XAI_API_KEY in backend/.env"
-                ],
+                suggested_followups=[],
                 is_fallback=False,
                 model=settings.XAI_MODEL,
-                error=err
+                error=err,
+                error_code=err_code
             )
 
         # High-Reliability Curated Fallback (only used when XAI_API_KEY is not configured)

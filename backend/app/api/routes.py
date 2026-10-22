@@ -52,7 +52,8 @@ def get_system_status():
         "database_mode": settings.DATABASE_MODE,
         "grok_configured": grok_service.is_configured(),
         "grok_status": ai_health["status"],
-        "gemini_active": ai_service.client is not None,
+        "gemini_active": ai_service.is_gemini_active(),
+        "gemini_model": settings.GEMINI_MODEL,
         "model": settings.XAI_MODEL,
         "concepts_loaded": len(repo.concepts),
         "questions_loaded": len(repo.questions)
@@ -792,13 +793,35 @@ def tutor_chat(req: TutorChatRequest):
     Preserves dialogue history and supports quick pedagogical modifiers
     (simplify, worked_example, analogy, summary, practice_question).
     """
-    return grok_service.chat_tutor(
+    res = grok_service.chat_tutor(
         messages=req.messages,
         subject=req.subject,
         topic=req.topic,
         level=req.level,
         action=req.action
     )
+    if res.error:
+        if res.error_code == "out_of_credits":
+            raise HTTPException(
+                status_code=403,
+                detail="Your xAI team needs active API credits or the required API access to generate responses."
+            )
+        elif res.error_code == "invalid_key":
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid xAI API Key (401 Unauthorized). Please check your credentials in the xAI Console."
+            )
+        elif res.error_code == "rate_limited":
+            raise HTTPException(
+                status_code=429,
+                detail="xAI Grok rate limit reached. Please try again shortly."
+            )
+        else:
+            raise HTTPException(
+                status_code=502,
+                detail=res.error or "xAI Grok provider error occurred."
+            )
+    return res
 
 @router.post("/lessons/generate", response_model=DynamicLesson)
 def generate_dynamic_lesson(req: DynamicLessonRequest):

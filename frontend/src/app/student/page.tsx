@@ -50,14 +50,14 @@ export default function StudentPortalPage() {
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex flex-wrap items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
+          <div className="flex flex-wrap items-center gap-1.5 bg-black/30 backdrop-blur-xl p-1.5 rounded-2xl border border-white/10 shadow-2xl">
             {/* Primary Tab: Ask ThinkFlow AI */}
             <button
               onClick={() => setActiveTab('ask-ai')}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === 'ask-ai'
-                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <Bot className="w-3.5 h-3.5" />
@@ -72,8 +72,8 @@ export default function StudentPortalPage() {
               onClick={() => setActiveTab('lessons')}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === 'lessons'
-                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
@@ -84,8 +84,8 @@ export default function StudentPortalPage() {
               onClick={() => { setActiveTab('diagnostic'); setIsReassessment(false); }}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === 'diagnostic' && !isReassessment
-                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
@@ -97,8 +97,8 @@ export default function StudentPortalPage() {
               onClick={() => setActiveTab('revision')}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === 'revision'
-                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -109,8 +109,8 @@ export default function StudentPortalPage() {
               onClick={() => setActiveTab('graph')}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === 'graph'
-                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <Network className="w-3.5 h-3.5" />
@@ -121,8 +121,8 @@ export default function StudentPortalPage() {
               onClick={() => setActiveTab('recovery')}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === 'recovery'
-                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <Route className="w-3.5 h-3.5" />
@@ -133,8 +133,8 @@ export default function StudentPortalPage() {
               onClick={() => setActiveTab('steps')}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === 'steps'
-                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -145,8 +145,8 @@ export default function StudentPortalPage() {
               onClick={() => setActiveTab('generator')}
               className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                 activeTab === 'generator'
-                  ? 'bg-teal-500 text-slate-950 font-bold shadow-md shadow-teal-500/20'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-black font-bold shadow-md shadow-white/10'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" />
@@ -185,17 +185,29 @@ export default function StudentPortalPage() {
           </div>
         )}
 
-        {/* Feature B: Full Spaced Revision View */}
+        {/* Feature B: Full Spaced Revision View with Glass Calendar */}
         {activeTab === 'revision' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <SpacedRevisionPanel
-              studentId={activeStudentId}
-              onSelectConceptForPractice={(cid) => {
-                setFocalConcept(cid);
-                setIsReassessment(false);
-                setActiveTab('diagnostic');
-              }}
-            />
+          <div className="max-w-5xl mx-auto space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              <div className="lg:col-span-2">
+                <SpacedRevisionPanel
+                  studentId={activeStudentId}
+                  onSelectConceptForPractice={(cid) => {
+                    setFocalConcept(cid);
+                    setIsReassessment(false);
+                    setActiveTab('diagnostic');
+                  }}
+                />
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-full flex items-center justify-between mb-3 px-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/70">
+                    {t('Study & Revision Calendar', 'अध्ययन एवं रिवीजन कैलेंडर')}
+                  </h4>
+                </div>
+                <GlassCalendar />
+              </div>
+            </div>
           </div>
         )}
 

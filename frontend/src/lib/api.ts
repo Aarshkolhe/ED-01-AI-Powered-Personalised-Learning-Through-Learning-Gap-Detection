@@ -270,6 +270,7 @@ export interface TutorChatResponse {
   is_fallback: boolean;
   model: string;
   error?: string;
+  error_code?: string;
 }
 
 export interface DynamicLessonRequest {
@@ -397,7 +398,19 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req)
     });
-    if (!res.ok) throw new Error('Failed to generate tutor response');
+    if (!res.ok) {
+      let detail = 'Failed to generate tutor response';
+      try {
+        const data = await res.json();
+        if (data && data.detail) {
+          detail = data.detail;
+        }
+      } catch {}
+      const err: any = new Error(detail);
+      err.status = res.status;
+      err.code = res.status === 403 ? 'out_of_credits' : (res.status === 401 ? 'invalid_key' : 'api_error');
+      throw err;
+    }
     return res.json();
   },
 

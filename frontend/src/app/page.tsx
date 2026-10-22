@@ -215,7 +215,7 @@ export default function LandingPage() {
             <span>Workflow & Engine</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            How Thinkflow Identifies & Heals Gaps
+            How ThinkFlow Identifies & Heals Gaps
           </h2>
           <p className="text-sm sm:text-base text-slate-400 mt-2.5 max-w-2xl mx-auto">
             A three-stage cognitive pipeline uniting rigorous psychometrics with modern AI
@@ -249,7 +249,7 @@ export default function LandingPage() {
             </div>
             <h4 className="text-base sm:text-lg font-bold text-white">Targeted Recovery Path</h4>
             <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-              Thinkflow generates personalized step-by-step remediation, spaced revision reminders, and calculates real-time Learning Recovery Scores.
+              ThinkFlow generates personalized step-by-step remediation, spaced revision reminders, and calculates real-time Learning Recovery Scores.
             </p>
           </div>
         </div>

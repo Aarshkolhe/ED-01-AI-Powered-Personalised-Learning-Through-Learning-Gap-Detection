@@ -28,7 +28,7 @@ export default function RootLayout({
         />
         <link rel="icon" type="image/png" href="/thinkflow-icon.png" />
       </head>
-      <body className={`${plusJakarta.className} bg-[#0A0F1D] text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-slate-950 relative`}>
+      <body className={`${plusJakarta.className} bg-transparent text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-slate-950 relative`}>
         {/* Global Animated Flow-Motion Video Background & Atmospheric Overlays */}
         <GlobalVideoBackground />
 

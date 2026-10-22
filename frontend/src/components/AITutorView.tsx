@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   apiClient,
   TutorChatMessage,
+  TutorChatRequest,
   TutorChatResponse,
   AIHealthStatus
 } from '@/lib/api';
@@ -20,7 +21,8 @@ import {
   Bot,
   User,
   CornerDownLeft,
-  ChevronRight
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react';
 
 const SUBJECT_OPTIONS = [
@@ -47,6 +49,12 @@ const QUICK_ACTIONS = [
   { id: 'summary', label: '📌 Key Takeaways', tooltip: 'Bulleted summary of core rules' }
 ];
 
+interface ProviderErrorState {
+  code: 'out_of_credits' | 'invalid_key' | 'rate_limited' | 'error';
+  heading: string;
+  message: string;
+}
+
 export function AITutorView() {
   const { activeStudentId, t } = useApp();
   const [subject, setSubject] = useState<string>('General Academic');
@@ -57,7 +65,8 @@ export function AITutorView() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [followups, setFollowups] = useState<string[]>([]);
   const [healthStatus, setHealthStatus] = useState<AIHealthStatus | null>(null);
-  const [apiErrorBanner, setApiErrorBanner] = useState<string | null>(null);
+  const [providerError, setProviderError] = useState<ProviderErrorState | null>(null);
+  const [lastPendingRequest, setLastPendingRequest] = useState<TutorChatRequest | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -68,11 +77,15 @@ export function AITutorView() {
     apiClient.getAIHealth().then((h) => {
       if (mounted) {
         setHealthStatus(h);
-        if (h.status === 'out_of_credits' || h.status === 'invalid_key' || h.status === 'rate_limited') {
-          setApiErrorBanner(h.message);
+        if (h.status === 'out_of_credits' || h.status === 'invalid_key' || h.status === 'missing_key') {
+          setProviderError({
+            code: h.status === 'invalid_key' ? 'invalid_key' : 'out_of_credits',
+            heading: `${h.provider || 'AI'} API: ${h.status.replace(/_/g, ' ')}`,
+            message: h.message || 'Please check your API configuration.'
+          });
         }
       }
-    });
+    }).catch(() => {});
     return () => { mounted = false; };
   }, []);
 
@@ -130,24 +143,24 @@ export function AITutorView() {
     };
 
     const newHistory = [...messages, userMsg];
+    // Keep user's question intact in conversation history
     setMessages(newHistory);
     setInputText('');
     setIsLoading(true);
-    setApiErrorBanner(null);
+    setProviderError(null);
+
+    const requestPayload: TutorChatRequest = {
+      student_id: activeStudentId,
+      subject: activeSubject,
+      topic: activeTopic,
+      level,
+      messages: newHistory,
+      action: actionModifier
+    };
+    setLastPendingRequest(requestPayload);
 
     try {
-      const res = await apiClient.chatTutor({
-        student_id: activeStudentId,
-        subject: activeSubject,
-        topic: activeTopic,
-        level,
-        messages: newHistory,
-        action: actionModifier
-      });
-
-      if (res.error) {
-        setApiErrorBanner(res.error);
-      }
+      const res = await apiClient.chatTutor(requestPayload);
 
       const assistantMsg: TutorChatMessage = {
         id: `a_${Date.now()}`,
@@ -158,8 +171,81 @@ export function AITutorView() {
 
       setMessages([...newHistory, assistantMsg]);
       setFollowups(res.suggested_followups || []);
+      setProviderError(null);
+      setLastPendingRequest(null);
     } catch (err: any) {
-      setApiErrorBanner(err.message || 'Network connection failed. Could not communicate with ThinkFlow AI backend.');
+      const isOutOfCredits =
+        err?.status === 403 ||
+        err?.code === 'out_of_credits' ||
+        (err?.message && (err.message.includes('credits') || err.message.includes('403') || err.message.includes('permission-denied')));
+
+      if (isOutOfCredits) {
+        setProviderError({
+          code: 'out_of_credits',
+          heading: 'Grok API access unavailable',
+          message: 'Your xAI team needs active API credits or the required API access to generate responses.'
+        });
+      } else if (err?.status === 401 || err?.code === 'invalid_key') {
+        setProviderError({
+          code: 'invalid_key',
+          heading: 'Invalid xAI API Key',
+          message: 'Please check your API key credentials in the xAI Console.'
+        });
+      } else if (err?.status === 429 || err?.code === 'rate_limited') {
+        setProviderError({
+          code: 'rate_limited',
+          heading: 'Rate Limit Reached',
+          message: 'xAI Grok rate limit reached. Please wait a moment and try again.'
+        });
+      } else {
+        setProviderError({
+          code: 'error',
+          heading: 'Grok API access unavailable',
+          message: 'Your xAI team needs active API credits or the required API access to generate responses.'
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (!lastPendingRequest || isLoading) return;
+    setIsLoading(true);
+
+    try {
+      const res = await apiClient.chatTutor(lastPendingRequest);
+
+      const assistantMsg: TutorChatMessage = {
+        id: `a_${Date.now()}`,
+        role: 'assistant',
+        content: res.response,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setMessages([...lastPendingRequest.messages, assistantMsg]);
+      setFollowups(res.suggested_followups || []);
+      setProviderError(null);
+      setLastPendingRequest(null);
+    } catch (err: any) {
+      const isOutOfCredits =
+        err?.status === 403 ||
+        err?.code === 'out_of_credits' ||
+        (err?.message && (err.message.includes('credits') || err.message.includes('403') || err.message.includes('permission-denied')));
+
+      if (isOutOfCredits) {
+        setProviderError({
+          code: 'out_of_credits',
+          heading: 'Grok API access unavailable',
+          message: 'Your xAI team needs active API credits or the required API access to generate responses.'
+        });
+      } else {
+        setProviderError({
+          code: 'error',
+          heading: 'Grok API access unavailable',
+          message: 'Your xAI team needs active API credits or the required API access to generate responses.'
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -195,11 +281,13 @@ export function AITutorView() {
       'How do I solve two-step linear equations?'
     ]);
     setInputText('');
+    setProviderError(null);
+    setLastPendingRequest(null);
     textareaRef.current?.focus();
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* ------------------------------------------------------------- */}
       {/* 1. HERO QUESTION INPUT CARD: "What would you like to learn?"  */}
       {/* ------------------------------------------------------------- */}
@@ -366,16 +454,54 @@ export function AITutorView() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. HONEST PROVIDER STATUS / REAL ERROR BANNER                 */}
+      {/* 2. COMPACT, WELL-SPACED XAI PROVIDER WARNING CARD             */}
       {/* ------------------------------------------------------------- */}
-      {apiErrorBanner && (
-        <div className="p-5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs sm:text-sm text-amber-200 flex items-start space-x-3 shadow-lg">
-          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="font-bold text-amber-300">xAI Grok Provider Notice</p>
-            <p className="leading-relaxed">{apiErrorBanner}</p>
+      {providerError && (
+        <aside
+          role="alert"
+          aria-live="polite"
+          className="rounded-2xl border border-amber-500/30 bg-amber-950/20 px-4 py-3.5 sm:px-5 sm:py-4 shadow-lg backdrop-blur-sm transition-all"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Icon + Title + Explanation */}
+            <div className="flex items-start sm:items-center space-x-3 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5 min-w-0">
+                <h4 className="text-sm font-semibold text-amber-200 tracking-tight">
+                  {providerError.heading}
+                </h4>
+                <p className="text-xs text-amber-300/80 leading-relaxed">
+                  {providerError.message}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons: Open xAI Console + Retry */}
+            <div className="flex items-center gap-2 sm:self-center pl-11 sm:pl-0 flex-shrink-0">
+              <a
+                href="https://console.x.ai/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/30 text-xs font-semibold transition hover:border-amber-400/50 shadow-sm"
+              >
+                <span>Open xAI Console</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              <button
+                type="button"
+                onClick={handleRetry}
+                disabled={isLoading}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-bold transition shadow-sm disabled:opacity-50 active:scale-95"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'Retrying...' : 'Retry'}</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </aside>
       )}
 
       {/* ------------------------------------------------------------- */}
